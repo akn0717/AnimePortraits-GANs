@@ -1,4 +1,4 @@
-# WaifuGAN-Keras
+# AnimeGAN-Keras
 Using Generative Adverserial Network to generate anime faces
 
 ## Datasets
