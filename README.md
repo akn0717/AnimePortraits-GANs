@@ -1,9 +1,12 @@
 # AnimeGAN-Keras
-Using Generative Adverserial Network to generate anime faces
+Using Generative Adverserial Network to generate anime faces in Keras
+
+1. Vanila GAN
+2. Wasserstein GAN with Gradient Penalty
 
 ## Datasets
 
-This GAN was trained by 21,551 images of soumik12345's datasets
+Those GAN's were trained on 21,551 images of soumik12345's datasets
 
 Link: https://www.kaggle.com/soumikrakshit/anime-faces
 
