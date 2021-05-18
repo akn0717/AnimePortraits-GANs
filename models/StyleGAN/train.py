@@ -6,62 +6,73 @@ import numpy as np
 import random
 
 from utils.plotlib import *
-from collections import deque
+import argparse
 
 import os
 
+def train(args):
+	img_width, img_height = 256, 256
 
-img_width, img_height = 256, 256
+	data_dir = args.dataset
+	batch_size = 32
+	latent_space = 512
+	cnt = 0
 
-data_dir = 'Dataset'
-batch_size = 32
-latent_space = 512
-cnt = 0
+	g_loss = []
+	d_loss = []
 
-g_loss = []
-d_loss = []
+	########Train
+	noise = np.random.normal(size = (batch_size,latent_space))
 
-########Train
-noise = np.random.normal(size = (batch_size,latent_space))
-
-cnt = 0
-D_loss = 0
-
-
-model = WGANGP_model(batch_size = batch_size, img_height = img_height, img_width = img_width, channels = 3, load_model = False, load_const = True)
-img_files = [f for f in os.listdir(data_dir) if os.path.isfile(os.path.join(data_dir, f))]
-n_critic = 5
+	cnt = 0
+	D_loss = 0
 
 
-while (True):
-	cnt+=1
-	for _ in range(n_critic):
-		real_samples = random.sample(img_files, batch_size)
-		model.reals = np.array(load_sampling(data_dir, real_samples, img_height, img_width))/127.5 - 1
+	model = StyleGAN(batch_size = batch_size, img_height = img_height, img_width = img_width, channels = 3, load_model = True, load_const = True)
+	img_files = [f for f in os.listdir(data_dir) if os.path.isfile(os.path.join(data_dir, f))]
+	n_critic = 5
+
+	while (True):
+		cnt+=1
+		for _ in range(n_critic):
+			real_samples = random.sample(img_files, batch_size)
+			model.reals = np.array(load_sampling(data_dir, real_samples, img_height, img_width))/127.5 - 1
+			model.z = np.random.normal(size = (batch_size,latent_space))
+			model.noise = np.random.normal(size = (batch_size, img_height, img_width,1))
+			##Train Discriminator
+			model.Discriminator.trainable = True
+
+			D_loss = model.train_on_batch_D()
+
+		###Train Generator
 		model.z = np.random.normal(size = (batch_size,latent_space))
 		model.noise = np.random.normal(size = (batch_size, img_height, img_width,1))
-		##Train Discriminator
-		model.Discriminator.trainable = True
+		model.Discriminator.trainable = False
+		G_loss = model.train_on_batch_G()
 
-		D_loss = model.train_on_batch_D()
+		d_loss.append(-D_loss)
+		g_loss.append(G_loss)
 
-    ###Train Generator
-	model.z = np.random.normal(size = (batch_size,latent_space))
-	model.noise = np.random.normal(size = (batch_size, img_height, img_width,1))
-	model.Discriminator.trainable = False
-	G_loss = model.train_on_batch_G()
+		if (cnt%int(args.detail_epoch)==0):
+			print('epochs: ',cnt,' loss D: ',-D_loss,' loss G',G_loss)
 
-	d_loss.append(-D_loss)
-	g_loss.append(G_loss)
+		if cnt%int(args.preview_epoch)==0:
+			result = ((model.Generator.predict([model.z, model.noise])+1)/2)*255
+			display_img(list(result), save_path = 'Preview.jpg')
+			plot_multiple_vectors([d_loss,g_loss], title = 'loss', xlabel='epochs', legends = ['Discriminator Loss', 'Generator Loss'], save_path = 'loss')
+		
+		if cnt%int(args.save_epoch)==0:
+			print("Saving...")
+			model.save_model()
 
-	if (cnt%10==0):
-		print('epochs: ',cnt,' loss D: ',-D_loss,' loss G',G_loss)
+if __name__ == "__main__":
+	parser = argparse.ArgumentParser()
+    parser.add_argument('-n', '--new', action = 'train_new')
+	parser.add_argument('-el', '--epoch_detail', dest = 'detail_epoch', default = 10)
+	parser.add_argument('-ep', '--epoch_preview', dest = 'preview_epoch', default = 100)
+	parser.add_argument('-es', '--epoch_save', dest = 'save_epoch', default = 100)
+	parser.add_argument('-d', '--data', dest = 'dataset', default = 'Dataset')
+    args = parser.parse_args()
 
-	if cnt%100==0:
-		result = (model.Generator.predict([model.z, model.noise])+1)/2
-		display_img(list(result), save_path = 'Preview.jpg')
-		plot_multiple_vectors([d_loss,g_loss], title = 'loss', xlabel='epochs', legends = ['Discriminator Loss', 'Generator Loss'], save_path = 'loss')
+    train(args)
 	
-	if cnt%100==0:
-		print("Saving...")
-		model.save_model()

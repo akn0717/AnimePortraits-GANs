@@ -50,7 +50,7 @@ def replicate(const, batch_size):
     ans = tf.constant(np.array(ans))
     return ans
 
-class WGANGP_model():
+class StyleGAN():
     def _Get_Generator(self):
         x_out = []
         z = Input(shape = (512,))
