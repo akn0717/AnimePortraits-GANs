@@ -11,7 +11,6 @@ from AdaIN import AdaInstanceNormalization
 def g_block(x, y_s, y_b, filter):
     hidden = UpSampling2D() (x)
     hidden = Conv2D(filter,(3,3),padding = 'same') (hidden)
-    hidden = AdaInstanceNormalization() ([hidden, y_b, y_s])
     hidden = Activation('relu') (hidden)
     hidden = Conv2D(filter,(3,3),padding = 'same') (hidden)
     hidden = AdaInstanceNormalization() ([hidden, y_b, y_s])
@@ -76,8 +75,8 @@ class WGANGP_model():
         y_s, y_b = A_block(w, 32)
         hidden, rgb = g_block(hidden, y_s, y_b, 32)
         x_out.append(rgb)
-        hidden = UpSampling2D() (hidden)
-        rgb = Conv2D(3, (1,1), padding = 'same') (hidden)
+        y_s, y_b = A_block(w, 16)
+        hidden, rgb = g_block(hidden, y_s, y_b, 16)
         x_out.append(rgb)
         x_out = Add() (x_out)
         x_out = Activation('tanh') (x_out)
@@ -86,6 +85,8 @@ class WGANGP_model():
 
     def _Get_Discriminator(self):
         x = Input(shape = (128,128,3))
+        hidden = Conv2D(16,(1,1),padding='same') (x)
+        hidden = d_block(x, 16)
         hidden = d_block(x, 32)
         hidden = d_block(hidden, 64)
         hidden = d_block(hidden, 128)
@@ -106,14 +107,14 @@ class WGANGP_model():
         GD.summary()
         return G, D, GD
 
-    def __init__(self, batch_size, load = False):
+    def __init__(self, batch_size, load_model = False, load_const = False):
         self.lamda = 10
         self.reals = None
         self.noise = None
         self.fakes = None
         self.batch_size = batch_size
 
-        if load == True:
+        if load_const == True:
             const = np.loadtxt('const.txt',delimiter=',')
             const = np.reshape(const,(4,4,512))
         else:
@@ -121,13 +122,13 @@ class WGANGP_model():
 
         self.const = const
 
-        if load == False:
+        if load_const == False:
             self.save_const()
 
         self.const_tensor = replicate(const, self.batch_size)
         self.Generator, self.Discriminator, self.Stacked_model = self._get_model()
 
-        if load == True:
+        if load_model == True:
             
             self.Generator.load_weights('Generator.h5')
             self.Discriminator.load_weights('Discriminator.h5')
