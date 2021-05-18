@@ -9,16 +9,16 @@ from collections import deque
 import os
 
 
-img_width, img_height = 64, 64
+img_width, img_height = 256, 256
 
 data_dir = 'Dataset'
-batch_size = 16
+batch_size = 32
 latent_space = 512
 cnt = 0
 
-frame = deque()
-g_loss = deque()
-d_loss = deque()
+frame = []
+g_loss = []
+d_loss = []
 
 img_fig = plt.figure(figsize = (15,10))
 graph_fig = plt.figure(figsize = (7,2))
@@ -35,7 +35,8 @@ noise = np.random.normal(size = (batch_size,latent_space))
 cnt = 0
 D_loss = 0
 
-model = WGANGP_model(batch_size = batch_size, load_model = False, load_const = True)
+
+model = WGANGP_model(batch_size = batch_size, img_height = img_height, img_width = img_width, channels = 3, load_model = False, load_const = True)
 img_files = [f for f in os.listdir(data_dir) if os.path.isfile(os.path.join(data_dir, f))]
 n_critic = 5
 
@@ -58,7 +59,8 @@ while (True):
 	model.Discriminator.trainable = False
 	G_loss = model.train_on_batch_G()
 
-	d_loss.append(D_loss)
+	d_loss.append(-D_loss)
+	g_loss.append(G_loss)
 	frame.append(cnt)
 
 	if (cnt%10==0):
@@ -68,7 +70,8 @@ while (True):
 		result = (model.Generator.predict([model.z, model.noise])+1)/2
 		for i in range(len(g)):
 			g[i].imshow(result[i])
-		loss_fig.plot(frame,d_loss,'b-')
+		loss_fig.plot(frame,d_loss)
+		loss_fig.plot(frame,g_loss)
 		img_fig.savefig("Preview.jpg")
 		graph_fig.savefig('loss.jpg')
 		for i in range(len(g)):

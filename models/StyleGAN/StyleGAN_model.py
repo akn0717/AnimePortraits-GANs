@@ -1,13 +1,12 @@
 from tensorflow.python.keras.layers.convolutional import Cropping2D, UpSampling2D
-from tensorflow.python.keras.layers.normalization import BatchNormalization
 from loss_function import *
-from keras.models import Sequential, Model
+from keras.models import Model
 from keras.layers import Conv2D, Dense, Activation, Flatten, Reshape, Input, UpSampling2D, Add
 from keras.layers import LeakyReLU, Cropping2D, AveragePooling2D
 from keras.optimizers import Adam
 from AdaIN import AdaInstanceNormalization
 
-def g_block(x, y_s, y_b, noise, filter):
+def G_block(x, y_s, y_b, noise, filter):
     hidden = UpSampling2D() (x)
     hidden = Conv2D(filter,(3,3),padding = 'same') (hidden)
     hidden = Activation('relu') (hidden)
@@ -17,10 +16,10 @@ def g_block(x, y_s, y_b, noise, filter):
     x_out = Activation('relu') (hidden)
 
     to_rgb = Conv2D(3, (1,1), padding = 'same') (x_out)
-    to_rgb = UpSampling2D(size = (int(64/hidden.shape[1]),int(64/hidden.shape[1]))) (to_rgb)
+    to_rgb = UpSampling2D(size = (int(256/hidden.shape[1]),int(256/hidden.shape[1]))) (to_rgb)
     return x_out, to_rgb
     
-def d_block(x, filter):
+def D_block(x, filter):
     hidden = Conv2D(filter,(3,3),padding = 'same') (x)
     hidden = LeakyReLU(0.2) (hidden)
     hidden = Conv2D(filter,(3,3),padding = 'same') (hidden)
@@ -39,7 +38,7 @@ def A_block(w, filter):
     return y_s, y_b
 
 def B_block(noise, filter, size):
-    size = ((0,64 - size),(0,64 - size))
+    size = ((0,noise.shape[1] - size),(0,noise.shape[1] - size))
     out = Cropping2D(cropping = size) (noise)
     out = Conv2D(filter, (1,1), padding = 'same') (out)
     return out
@@ -64,7 +63,7 @@ class WGANGP_model():
         FC = Dense(512, activation = 'relu') (FC)
         w = Dense(512, activation = 'relu') (FC)
 
-        noise_inp = Input(shape = (64,64,1))
+        noise_inp = Input(shape = (self.img_height,self.img_width,1))
 
         x = self.const_tensor
         y_s, y_b = A_block(w, 512)
@@ -74,19 +73,27 @@ class WGANGP_model():
         hidden = Activation('relu') (hidden)
         y_s, y_b = A_block(w, 256)
         noise = B_block(noise_inp, 256, 8)
-        hidden, rgb = g_block(hidden, y_s, y_b, noise, 256)
+        hidden, rgb = G_block(hidden, y_s, y_b, noise, 256)
         x_out.append(rgb)
         y_s, y_b = A_block(w, 128)
         noise = B_block(noise_inp, 128, 16)
-        hidden, rgb = g_block(hidden, y_s, y_b, noise, 128)
+        hidden, rgb = G_block(hidden, y_s, y_b, noise, 128)
         x_out.append(rgb)
         y_s, y_b = A_block(w, 64)
         noise = B_block(noise_inp, 64, 32)
-        hidden, rgb = g_block(hidden, y_s, y_b, noise, 64)
+        hidden, rgb = G_block(hidden, y_s, y_b, noise, 64)
         x_out.append(rgb)
         y_s, y_b = A_block(w, 32)
         noise = B_block(noise_inp, 32, 64)
-        hidden, rgb = g_block(hidden, y_s, y_b, noise, 32)
+        hidden, rgb = G_block(hidden, y_s, y_b, noise, 32)
+        x_out.append(rgb)
+        y_s, y_b = A_block(w, 16)
+        noise = B_block(noise_inp, 16, 128)
+        hidden, rgb = G_block(hidden, y_s, y_b, noise, 16)
+        x_out.append(rgb)
+        y_s, y_b = A_block(w, 8)
+        noise = B_block(noise_inp, 8, 256)
+        hidden, rgb = G_block(hidden, y_s, y_b, noise, 8)
         x_out.append(rgb)
         x_out = Add() (x_out)
         x_out = Activation('tanh') (x_out)
@@ -94,12 +101,14 @@ class WGANGP_model():
         return model
 
     def _Get_Discriminator(self):
-        x = Input(shape = (64,64,3))
-        hidden = Conv2D(64,(1,1),padding='same') (x)
-        hidden = d_block(x, 64)
-        hidden = d_block(hidden, 128)
-        hidden = d_block(hidden, 256)
-        hidden = d_block(hidden, 512)
+        x = Input(shape = (self.img_height,self.img_width,self.channels))
+        hidden = Conv2D(16,(1,1),padding='same') (x)
+        hidden = D_block(x, 16)
+        hidden = D_block(hidden, 32)
+        hidden = D_block(hidden, 64)
+        hidden = D_block(hidden, 128)
+        hidden = D_block(hidden, 256)
+        hidden = D_block(hidden, 512)
         hidden = Flatten() (hidden)
         x_out = Dense(1) (hidden)
         model = Model(x,x_out)
@@ -110,20 +119,24 @@ class WGANGP_model():
         D = self._Get_Discriminator()
         D.trainable = False
         z = Input(shape = (512,))
-        noise_inp = Input(shape = (64,64,1))
+        noise_inp = Input(shape = (self.img_height,self.img_width,1))
         hidden = G([z,noise_inp])
         x_out = D(hidden)
         GD = Model([z,noise_inp],x_out)
         GD.summary()
         return G, D, GD
 
-    def __init__(self, batch_size, load_model = False, load_const = False):
+    def __init__(self, batch_size, img_height, img_width, channels, load_model = False, load_const = False):
         self.lamda = 10
         self.reals = None
         self.z = None
         self.noise = None
         self.fakes = None
         self.batch_size = batch_size
+
+        self.img_height = img_height
+        self.img_width = img_width
+        self.channels = channels
 
         if load_const == True:
             const = np.loadtxt('const.txt',delimiter=',')
@@ -167,8 +180,8 @@ class WGANGP_model():
         return float(loss_value)
     
     def save_model(self):
-        self.Generator.save_weights('/content/drive/MyDrive/Generator_R.h5')
-        self.Discriminator.save_weights('/content/drive/MyDrive/Discriminator_R.h5')
+        self.Generator.save_weights('/content/drive/MyDrive/Generator.h5')
+        self.Discriminator.save_weights('/content/drive/MyDrive/Discriminator.h5')
 
     def save_const(self):
         const = np.reshape(self.const,(4*4*512))
