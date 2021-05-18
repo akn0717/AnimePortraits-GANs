@@ -1,9 +1,11 @@
+from utils.plotlib import display_img, plot_multiple_vectors
 from StyleGAN_model import *
 from utils.imglib import *
 import matplotlib.pyplot as plt
 import numpy as np
 import random
 
+from utils.plotlib import *
 from collections import deque
 
 import os
@@ -16,18 +18,8 @@ batch_size = 32
 latent_space = 512
 cnt = 0
 
-frame = []
 g_loss = []
 d_loss = []
-
-img_fig = plt.figure(figsize = (15,10))
-graph_fig = plt.figure(figsize = (7,2))
-loss_fig = graph_fig.add_subplot(1,1,1)
-
-g = []
-n = int(np.sqrt(batch_size))
-for i in range(n*n):
-	g.append(img_fig.add_subplot(n,n,i+1))
 
 ########Train
 noise = np.random.normal(size = (batch_size,latent_space))
@@ -61,22 +53,14 @@ while (True):
 
 	d_loss.append(-D_loss)
 	g_loss.append(G_loss)
-	frame.append(cnt)
 
 	if (cnt%10==0):
 		print('epochs: ',cnt,' loss D: ',-D_loss,' loss G',G_loss)
 
 	if cnt%100==0:
 		result = (model.Generator.predict([model.z, model.noise])+1)/2
-		for i in range(len(g)):
-			g[i].imshow(result[i])
-		loss_fig.plot(frame,d_loss)
-		loss_fig.plot(frame,g_loss)
-		img_fig.savefig("Preview.jpg")
-		graph_fig.savefig('loss.jpg')
-		for i in range(len(g)):
-			g[i].cla()
-		loss_fig.cla()
+		display_img(list(result), save_path = 'Preview.jpg')
+		plot_multiple_vectors([d_loss,g_loss], title = 'loss', xlabel='epochs', legends = ['Discriminator Loss', 'Generator Loss'], save_path = 'loss')
 	
 	if cnt%100==0:
 		print("Saving...")

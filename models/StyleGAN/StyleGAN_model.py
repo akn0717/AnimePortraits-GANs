@@ -154,8 +154,8 @@ class WGANGP_model():
 
         if load_model == True:
             
-            self.Generator.load_weights('Generator.h5')
-            self.Discriminator.load_weights('Discriminator.h5')
+            self.Generator.load_weights('/content/drive/MyDrive/Generator.h5')
+            self.Discriminator.load_weights('/content/drive/MyDrive/Discriminator.h5')
         
         
         self.optimizer_D = Adam(learning_rate = 0.0001, beta_1 = 0, beta_2 = 0.9)
