@@ -51,10 +51,6 @@ def replicate(const, batch_size):
     ans = tf.constant(np.array(ans))
     return ans
 
-def crop_noise(noise, layer):
-    H, W = layer.shape[0], layer.shape[1]
-    return noise[:,H,W]
-
 class WGANGP_model():
     def _Get_Generator(self):
         x_out = []

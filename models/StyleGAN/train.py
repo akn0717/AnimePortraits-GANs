@@ -65,7 +65,7 @@ while (True):
 		print('epochs: ',cnt,' loss D: ',-D_loss,' loss G',G_loss)
 
 	if cnt%100==0:
-		result = (model.Generator.predict(model.noise)+1)/2
+		result = (model.Generator.predict([model.z, model.noise])+1)/2
 		for i in range(len(g)):
 			g[i].imshow(result[i])
 		loss_fig.plot(frame,d_loss,'b-')
