@@ -9,7 +9,7 @@ from collections import deque
 import os
 
 
-img_width, img_height = 128, 128
+img_width, img_height = 64, 64
 
 data_dir = 'Dataset'
 batch_size = 16
@@ -44,15 +44,17 @@ while (True):
 	cnt+=1
 	for _ in range(n_critic):
 		real_samples = random.sample(img_files, batch_size)
-		model.reals = np.array(load_sampling(data_dir, real_samples, img_width, img_height))/127.5 - 1
-		model.noise = np.random.normal(size = (batch_size,latent_space))
+		model.reals = np.array(load_sampling(data_dir, real_samples, img_height, img_width))/127.5 - 1
+		model.z = np.random.normal(size = (batch_size,latent_space))
+		model.noise = np.random.normal(size = (batch_size, img_height, img_width,1))
 		##Train Discriminator
 		model.Discriminator.trainable = True
 
 		D_loss = model.train_on_batch_D()
 
     ###Train Generator
-	model.noise = np.random.normal(size = (batch_size,latent_space))
+	model.z = np.random.normal(size = (batch_size,latent_space))
+	model.noise = np.random.normal(size = (batch_size, img_height, img_width,1))
 	model.Discriminator.trainable = False
 	G_loss = model.train_on_batch_G()
 
