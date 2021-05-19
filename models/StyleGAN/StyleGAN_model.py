@@ -6,6 +6,10 @@ from keras.layers import LeakyReLU, Cropping2D, AveragePooling2D
 from keras.optimizers import Adam
 from AdaIN import AdaInstanceNormalization
 
+import h5py
+
+import os
+
 def G_block(x, y_s, y_b, noise, filter):
     hidden = UpSampling2D() (x)
     hidden = Conv2D(filter,(3,3),padding = 'same') (hidden)
@@ -126,37 +130,27 @@ class StyleGAN():
         GD.summary()
         return G, D, GD
 
-    def __init__(self, batch_size, img_height, img_width, channels, load_model = False, load_const = False):
+    def __init__(self, batch_size, img_height, img_width, channels, path):
         self.lamda = 10
         self.reals = None
         self.z = None
         self.noise = None
         self.fakes = None
         self.batch_size = batch_size
+        self.epoch = 0
+        self.path = path
+
+        self.const = None
+        self.load_const(path)
 
         self.img_height = img_height
         self.img_width = img_width
         self.channels = channels
 
-        if load_const == True:
-            const = np.loadtxt('const.txt',delimiter=',')
-            const = np.reshape(const,(4,4,512))
-        else:
-            const = np.random.normal(size = (4,4,512))
-
-        self.const = const
-
-        if load_const == False:
-            self.save_const()
-
-        self.const_tensor = replicate(const, self.batch_size)
-        self.Generator, self.Discriminator, self.Stacked_model = self._get_model()
-
-        if load_model == True:
-            
-            self.Generator.load_weights('/content/drive/MyDrive/Generator.h5')
-            self.Discriminator.load_weights('/content/drive/MyDrive/Discriminator.h5')
         
+
+        self.const_tensor = replicate(self.const, self.batch_size)
+        self.Generator, self.Discriminator, self.Stacked_model = self._get_model()
         
         self.optimizer_D = Adam(learning_rate = 0.0001, beta_1 = 0, beta_2 = 0.9)
         self.optimizer_G = Adam(learning_rate = 0.0001, beta_1 = 0, beta_2 = 0.9)
@@ -179,10 +173,35 @@ class StyleGAN():
         self.optimizer_D.apply_gradients(zip(grads, self.Discriminator.trainable_weights))
         return float(loss_value)
     
-    def save_model(self):
-        self.Generator.save_weights('/content/drive/MyDrive/Generator.h5')
-        self.Discriminator.save_weights('/content/drive/MyDrive/Discriminator.h5')
+    def save_model(self, path):
+        array = np.array([self.epoch, self.img_height, self.img_width, self.batch_size],dtype = int)
 
-    def save_const(self):
+        with h5py.File(os.path.join(path, 'Model.h5'), 'w') as f: 
+            dset = f.create_dataset("model_details", data = array)
+        self.Generator.save_weights(os.path.join(path, 'Generator.h5'))
+        self.Discriminator.save_weights(os.path.join(path, 'Discriminator.h5'))
+
+    def load_model(self, path):
+        with h5py.File(os.path.join(path, 'Model.h5'),'r') as f:
+            data = f['model_details']
+            self.epoch = data[0]
+            self.img_height, self.img_width = data[1], data[2]
+            self.batch_size = data[3]
+        self.Generator.load_weights(os.path.join(path, 'Generator.h5'))
+        self.Discriminator.load_weights(os.path.join(path, 'Discriminator.h5'))
+
+    def save_const(self, path):
         const = np.reshape(self.const,(4*4*512))
-        np.savetxt('const.txt',const,delimiter=',')
+        np.savetxt(os.path.join(path, 'key_const.bin'),const,delimiter=',')
+
+    def load_const(self, path):
+        if os.path.exists(os.path.join(path, 'key_const.bin')):
+            const = np.loadtxt(os.path.join(path, 'key_const.bin'),delimiter=',')
+            const = np.reshape(const,(4,4,512))
+        else:
+            const = np.random.normal(size = (4,4,512))
+
+        self.const = const
+
+        if not(os.path.exists(os.path.join(path, 'key_const.bin'))):
+            self.save_const(path)
