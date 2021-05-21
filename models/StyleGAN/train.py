@@ -15,7 +15,7 @@ def train(args):
 	img_width, img_height = 256, 256
 
 	data_dir = args.dataset
-	batch_size = 32
+	batch_size = 16
 	latent_space = 512
 	cnt = 0
 
@@ -23,8 +23,9 @@ def train(args):
 	d_loss = []
 
 	########Train
-	noise = np.random.normal(size = (batch_size,latent_space))
-
+	z = np.random.normal(size = (batch_size,latent_space))
+	noise = np.random.normal(size = (batch_size, img_height, img_width,1))
+	
 	D_loss = 0
 
 
@@ -61,14 +62,17 @@ def train(args):
 		if model.epoch%int(args.detail_epoch)==0:
 			print('epochs: ',model.epoch,' loss D: ',-D_loss,' loss G',G_loss)
 
+		if model.epoch%int(args.save_epoch)==0:
+			model.save_model(args.model_path)
+
 		if model.epoch%int(args.preview_epoch)==0:
 			result = ((model.Generator.predict([model.z, model.noise])+1)/2)*255
 			display_img(list(result), save_path = 'Preview.jpg')
 			plot_multiple_vectors([d_loss,g_loss], title = 'loss', xlabel='epochs', legends = ['Discriminator Loss', 'Generator Loss'], save_path = 'loss')
 		
-		if model.epoch%int(args.save_epoch)==0:
-			print("Saving...")
-			model.save_model(args.model_path)
+		if model.epoch%1000==0:
+			result = ((model.Generator.predict([z, noise])+1)/2)*255
+			display_img(list(result), save_path = '/content/drive/MyDrive/Preview'+str(model.epoch)+'.jpg')
 	
 	return
 

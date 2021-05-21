@@ -18,18 +18,18 @@ def plot_multiple_vectors(v, figsize = (15,5), title = None, xlabel = None, ylab
         plt.savefig(save_path)
     if show == True:
         plt.show()
+    else:
+        plt.close()
 
 def display_img(img_list, save_path = None ,show = False):
     n = len(img_list)
-    for i in range(n):
-        img_list[i] = cv2.cvtColor(img_list[i],cv2.COLOR_RGB2BGR)
     size = int(np.sqrt(n))
     cnt = 0
     vertical = None
     for i in range(size):
         temp = img_list[cnt]
         cnt += 1
-        for _ in range(size):   
+        for _ in range(size-1):   
             temp = np.hstack((temp,img_list[cnt]))
             cnt += 1
         if i==0:

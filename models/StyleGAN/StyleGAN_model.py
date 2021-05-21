@@ -10,11 +10,32 @@ import h5py
 
 import os
 
-def G_block(x, y_s, y_b, noise, filter):
+def A_block(w, filter):
+    y_s = Dense(filter)(w)
+    y_s = Reshape((1,1,filter))(y_s)
+    y_b = Dense(filter)(w)
+    y_b = Reshape((1,1,filter))(y_b)
+    return y_s, y_b
+
+def B_block(noise, filter, size):
+    size = ((0,noise.shape[1] - size),(0,noise.shape[1] - size))
+    out = Cropping2D(cropping = size) (noise)
+    out = Conv2D(filter, (1,1), padding = 'same') (out)
+    return out
+
+def G_block(x, w, noise_inp, filter):
     hidden = UpSampling2D() (x)
+
     hidden = Conv2D(filter,(3,3),padding = 'same') (hidden)
+    noise = B_block(noise_inp, filter, hidden.shape[1])
+    y_s, y_b = A_block(w, filter)
+    hidden = Add() ([hidden,noise])
+    hidden = AdaInstanceNormalization() ([hidden, y_b, y_s])
     hidden = Activation('relu') (hidden)
+
     hidden = Conv2D(filter,(3,3),padding = 'same') (hidden)
+    noise = B_block(noise_inp, filter, hidden.shape[1])
+    y_s, y_b = A_block(w, filter)
     hidden = Add() ([hidden,noise])
     hidden = AdaInstanceNormalization() ([hidden, y_b, y_s])
     x_out = Activation('relu') (hidden)
@@ -33,19 +54,6 @@ def D_block(x, filter):
     x_out = Add()([x_out,hidden])
     x_out = AveragePooling2D() (x_out)
     return x_out
-
-def A_block(w, filter):
-    y_s = Dense(filter)(w)
-    y_s = Reshape((1,1,filter))(y_s)
-    y_b = Dense(filter)(w)
-    y_b = Reshape((1,1,filter))(y_b)
-    return y_s, y_b
-
-def B_block(noise, filter, size):
-    size = ((0,noise.shape[1] - size),(0,noise.shape[1] - size))
-    out = Cropping2D(cropping = size) (noise)
-    out = Conv2D(filter, (1,1), padding = 'same') (out)
-    return out
 
 def replicate(const, batch_size):
     ans = []
@@ -75,29 +83,17 @@ class StyleGAN():
         hidden = Add() ([x,noise])
         hidden = AdaInstanceNormalization() ([hidden, y_b, y_s])
         hidden = Activation('relu') (hidden)
-        y_s, y_b = A_block(w, 256)
-        noise = B_block(noise_inp, 256, 8)
-        hidden, rgb = G_block(hidden, y_s, y_b, noise, 256)
+        hidden, rgb = G_block(hidden, w, noise_inp, 256)
         x_out.append(rgb)
-        y_s, y_b = A_block(w, 128)
-        noise = B_block(noise_inp, 128, 16)
-        hidden, rgb = G_block(hidden, y_s, y_b, noise, 128)
+        hidden, rgb = G_block(hidden, w, noise_inp, 128)
         x_out.append(rgb)
-        y_s, y_b = A_block(w, 64)
-        noise = B_block(noise_inp, 64, 32)
-        hidden, rgb = G_block(hidden, y_s, y_b, noise, 64)
+        hidden, rgb = G_block(hidden, w, noise_inp, 64)
         x_out.append(rgb)
-        y_s, y_b = A_block(w, 32)
-        noise = B_block(noise_inp, 32, 64)
-        hidden, rgb = G_block(hidden, y_s, y_b, noise, 32)
+        hidden, rgb = G_block(hidden, w, noise_inp, 32)
         x_out.append(rgb)
-        y_s, y_b = A_block(w, 16)
-        noise = B_block(noise_inp, 16, 128)
-        hidden, rgb = G_block(hidden, y_s, y_b, noise, 16)
+        hidden, rgb = G_block(hidden, w, noise_inp, 16)
         x_out.append(rgb)
-        y_s, y_b = A_block(w, 8)
-        noise = B_block(noise_inp, 8, 256)
-        hidden, rgb = G_block(hidden, y_s, y_b, noise, 8)
+        hidden, rgb = G_block(hidden, w, noise_inp, 8)
         x_out.append(rgb)
         x_out = Add() (x_out)
         x_out = Activation('tanh') (x_out)
@@ -176,10 +172,19 @@ class StyleGAN():
     def save_model(self, path):
         array = np.array([self.epoch, self.img_height, self.img_width, self.batch_size],dtype = int)
 
+        print("Backup...",end='')
+        if os.path.isfile(os.path.join(path,'Model.h5')):
+            os.rename(os.path.join(path,'Model.h5'),os.path.join(path,'Model.bak'))
+            os.rename(os.path.join(path,'Generator.h5'),os.path.join(path,'Generator.bak'))
+            os.rename(os.path.join(path,'Discriminator.h5'),os.path.join(path,'Discriminator.bak'))
+        print("Done!")
+
+        print("Saving...",end='')
         with h5py.File(os.path.join(path, 'Model.h5'), 'w') as f: 
             dset = f.create_dataset("model_details", data = array)
         self.Generator.save_weights(os.path.join(path, 'Generator.h5'))
         self.Discriminator.save_weights(os.path.join(path, 'Discriminator.h5'))
+        print("Done!")
 
     def load_model(self, path):
         with h5py.File(os.path.join(path, 'Model.h5'),'r') as f:
