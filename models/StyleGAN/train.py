@@ -34,7 +34,6 @@ def train(args):
 	if (args.train_new == False):
 		model.load_model(args.model_path)
 	
-	model.save_model(args.model_path)
 	img_files = [f for f in os.listdir(data_dir) if os.path.isfile(os.path.join(data_dir, f))]
 	n_critic = 5
 
