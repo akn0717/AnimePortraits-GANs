@@ -83,6 +83,8 @@ class StyleGAN():
         hidden = Add() ([x,noise])
         hidden = AdaInstanceNormalization() ([hidden, y_b, y_s])
         hidden = Activation('relu') (hidden)
+        hidden, rgb = G_block(hidden, w, noise_inp, 512)
+        x_out.append(rgb)
         hidden, rgb = G_block(hidden, w, noise_inp, 256)
         x_out.append(rgb)
         hidden, rgb = G_block(hidden, w, noise_inp, 128)
@@ -92,8 +94,6 @@ class StyleGAN():
         hidden, rgb = G_block(hidden, w, noise_inp, 32)
         x_out.append(rgb)
         hidden, rgb = G_block(hidden, w, noise_inp, 16)
-        x_out.append(rgb)
-        hidden, rgb = G_block(hidden, w, noise_inp, 8)
         x_out.append(rgb)
         x_out = Add() (x_out)
         x_out = Activation('tanh') (x_out)
@@ -133,7 +133,7 @@ class StyleGAN():
         self.noise = None
         self.fakes = None
         self.batch_size = batch_size
-        self.epoch = 0
+        self.iteration = 0
         self.path = path
 
         self.const = None
@@ -170,7 +170,7 @@ class StyleGAN():
         return float(loss_value)
     
     def save_model(self, path):
-        array = np.array([self.epoch, self.img_height, self.img_width, self.batch_size],dtype = int)
+        array = np.array([self.iteration, self.img_height, self.img_width, self.batch_size],dtype = int)
 
         print("Backup...",end='')
         if os.path.isfile(os.path.join(path,'Model.h5')):
@@ -189,7 +189,7 @@ class StyleGAN():
     def load_model(self, path):
         with h5py.File(os.path.join(path, 'Model.h5'),'r') as f:
             data = f['model_details']
-            self.epoch = data[0]
+            self.iteration = data[0]
             self.img_height, self.img_width = data[1], data[2]
             self.batch_size = data[3]
         self.Generator.load_weights(os.path.join(path, 'Generator.h5'))
