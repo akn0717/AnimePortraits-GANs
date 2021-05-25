@@ -35,6 +35,7 @@ def train(args):
 		model.load_model(args.model_path)
 	
 	img_files = [f for f in os.listdir(data_dir) if os.path.isfile(os.path.join(data_dir, f))]
+	n = len(img_files)
 	n_critic = 5
 
 	
@@ -60,7 +61,7 @@ def train(args):
 		g_loss.append(G_loss)
 
 		if model.iteration%int(args.detail_iteration)==0:
-			print('epoch: ', int(model.iteration/model.batch_size),'iterations: ',model.iteration,' loss D: ',-D_loss,' loss G: ',G_loss)
+			print('epoch: ', int(model.iteration/int(n/model.batch_size))+1,' iterations: ',model.iteration,' loss D: ',-D_loss,' loss G: ',G_loss)
 
 		if model.iteration%int(args.save_iteration)==0:
 			model.save_model(args.model_path)
@@ -82,7 +83,7 @@ if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
 	parser.add_argument('-n', '--new', action = 'store_true', dest = 'train_new', default = False)
 	parser.add_argument('-b', '--batch_size', dest = 'batch_size', default = 16)
-	parser.add_argument('-d', '--iteration-detail', dest = 'detail_iteration', default = 10)
+	parser.add_argument('-de', '--iteration-detail', dest = 'detail_iteration', default = 10)
 	parser.add_argument('-p', '--iteration-preview', dest = 'preview_iteration', default = 100)
 	parser.add_argument('-s', '--iteration-save', dest = 'save_iteration', default = 100)
 	parser.add_argument('-d', '--data', dest = 'dataset', default = 'Dataset')
