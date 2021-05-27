@@ -37,7 +37,7 @@ def train(args):
 	img_files = [f for f in os.listdir(data_dir) if os.path.isfile(os.path.join(data_dir, f))]
 	n = len(img_files)
 	n_critic = 5
-
+	print("Data size: ",n," samples")
 	
 	while (True):
 		model.iteration+=1
@@ -61,7 +61,7 @@ def train(args):
 		g_loss.append(G_loss)
 
 		if model.iteration%int(args.detail_iteration)==0:
-			print('epoch: ', int(model.iteration/int(n/model.batch_size))+1,' iterations: ',model.iteration,' loss D: ',-D_loss,' loss G: ',G_loss)
+			print('epoch: ', int(model.iteration*model.batch_size/n)+1,' iterations: ',model.iteration,' loss D: ',-D_loss,' loss G: ',G_loss)
 
 		if model.iteration%int(args.save_iteration)==0:
 			model.save_model(args.model_path)
@@ -70,7 +70,7 @@ def train(args):
 			z_sample = np.random.normal(size = (batch_size,latent_space))
 			noise_sample = np.random.normal(size = (batch_size, img_height, img_width,1))
 			result = ((model.Generator.predict([z_sample, noise_sample])+1)/2)*255
-			display_img(list(result), save_path = 'Preview.jpg')
+			display_img(list(result), save_path = os.path.join(args.model_path,'Preview.jpg'))
 			plot_multiple_vectors([d_loss,g_loss], title = 'loss', xlabel='iterations', legends = ['Discriminator Loss', 'Generator Loss'], save_path = 'loss')
 		
 		if model.iteration%1000==0:
