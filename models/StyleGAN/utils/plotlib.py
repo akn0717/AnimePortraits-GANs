@@ -23,6 +23,7 @@ def plot_multiple_vectors(v, figsize = (15,5), title = None, xlabel = None, ylab
 
 def display_img(img_list, save_path = None ,show = False):
     n = len(img_list)
+    img_list = list(np.array(img_list).astype(np.uint8))
     size = int(np.sqrt(n))
     cnt = 0
     vertical = None
@@ -39,7 +40,7 @@ def display_img(img_list, save_path = None ,show = False):
     
     if show==True:
         cv2.imshow('Preview', vertical)
-        cv2.waitKey()
+        cv2.waitKey(1)
     
     if save_path!=None:
         cv2.imwrite(save_path, vertical)
