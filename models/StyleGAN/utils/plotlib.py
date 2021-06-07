@@ -40,7 +40,7 @@ def display_img(img_list, save_path = None ,show = False):
     
     if show==True:
         cv2.imshow('Preview', vertical)
-        cv2.waitKey(1)
+        cv2.waitKey(0)
     
     if save_path!=None:
         cv2.imwrite(save_path, vertical)

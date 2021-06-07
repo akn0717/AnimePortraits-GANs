@@ -1,0 +1,78 @@
+from utils.plotlib import display_img, plot_multiple_vectors
+from StyleGAN_model import *
+from utils.imglib import *
+import matplotlib.pyplot as plt
+import numpy as np
+import random
+from queue import PriorityQueue
+from utils.plotlib import *
+import argparse
+
+import os
+
+def interpolate_points(v1, v2, n_steps = 10):
+    ratios = np.linspace(0,1,num = n_steps)
+
+    v = []
+    for ratio in ratios:
+        v.append((1-ratio)*v1 + ratio*v2)
+
+    return v
+
+def repeat(v, nums):
+	ans = []
+	for _ in range(nums):
+		ans.append(v)
+	return np.array(ans)
+
+def generate(args):
+
+	beta_1 = args.psi
+	beta_2 = 0.5
+	img_width, img_height = 256, 256
+	batch_size = int(args.batch_size)
+	latent_space = 512
+
+	model = StyleGAN(batch_size = batch_size, img_height = img_height, img_width = img_width, channels = 3, path = args.model_path)
+
+	model.F_network.load_weights("trained_model/Mapping_Network.h5")
+	model.Generator.load_weights("trained_model/Generator.h5")
+
+
+	E_w = np.zeros(shape = (512,))
+	E_noise = np.zeros(shape = (img_width,img_height,1))
+
+	for _ in range(1000):
+		z = np.random.normal(size = (1,latent_space))
+		E_w = E_w + model.F_network.predict(z)[0]
+
+	E_w /= 1000
+
+	E_w = repeat(E_w, batch_size)
+	E_noise = repeat(E_noise,batch_size)
+
+	while True:
+		noise = np.random.normal(size = (batch_size,img_height, img_width,1))
+		z = np.random.normal(size = (batch_size,latent_space))
+		
+		w = model.F_network.predict(z)
+
+		w = beta_1 * w + (1-beta_1) * E_w
+		noise = beta_2 * noise + (1-beta_2) * E_noise
+
+		res = model.Generator.predict([w,noise])
+
+		res = list(((res+1)/2)*255)
+
+		display_img(res, show = True,save_path = "Preview.jpg")
+
+	return
+
+if __name__ == "__main__":
+	parser = argparse.ArgumentParser()
+	parser.add_argument('-b', '--batch_size', dest = 'batch_size', default = 9)
+	parser.add_argument('-m', '--model-path', dest = 'model_path', default = 'trained_model')
+	parser.add_argument('-psi', '--creativity', dest = 'psi', default = 0.5)
+	args = parser.parse_args()
+	
+	generate(args)

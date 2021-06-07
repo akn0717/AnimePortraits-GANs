@@ -1,4 +1,3 @@
-from tensorflow.python.keras.layers.convolutional import Cropping2D, UpSampling2D
 from loss_function import *
 from keras.models import Model
 from keras.layers import Conv2D, Dense, Activation, Flatten, Reshape, Input, UpSampling2D, Add
@@ -59,22 +58,28 @@ def replicate(const, batch_size):
     ans = []
     for _ in range(batch_size):
         ans.append(const)
-    ans = tf.constant(np.array(ans))
+    ans = tf.constant(np.array(ans), dtype = float)
     return ans
 
 class StyleGAN():
+    
+    def _Get_Mapping_Network(self):
+        z = Input(shape = (512,))
+        FC = Dense(512, activation = 'relu',name = 'FC_1') (z)
+        FC = Dense(512, activation = 'relu',name = 'FC_2') (FC)
+        FC = Dense(512, activation = 'relu',name = 'FC_3') (FC)
+        FC = Dense(512, activation = 'relu',name = 'FC_4') (FC)
+        FC = Dense(512, activation = 'relu',name = 'FC_5') (FC)
+        FC = Dense(512, activation = 'relu',name = 'FC_6') (FC)
+        FC = Dense(512, activation = 'relu',name = 'FC_7') (FC)
+        w = Dense(512, activation = 'relu',name = 'FC_8') (FC)
+        return Model(z,w)
+
     def _Get_Generator(self):
         x_out = []
-        z = Input(shape = (512,))
-        FC = Dense(512, activation = 'relu') (z)
-        FC = Dense(512, activation = 'relu') (FC)
-        FC = Dense(512, activation = 'relu') (FC)
-        FC = Dense(512, activation = 'relu') (FC)
-        FC = Dense(512, activation = 'relu') (FC)
-        FC = Dense(512, activation = 'relu') (FC)
-        FC = Dense(512, activation = 'relu') (FC)
-        w = Dense(512, activation = 'relu') (FC)
-
+        
+        
+        w = Input(shape = (512,))
         noise_inp = Input(shape = (self.img_height,self.img_width,1))
 
         x = self.const_tensor
@@ -97,7 +102,7 @@ class StyleGAN():
         x_out.append(rgb)
         x_out = Add() (x_out)
         x_out = Activation('tanh') (x_out)
-        model = Model([z,noise_inp],x_out)
+        model = Model([w,noise_inp],x_out)
         return model
 
     def _Get_Discriminator(self):
@@ -115,16 +120,17 @@ class StyleGAN():
         return model
 
     def _get_model(self):
+        F = self._Get_Mapping_Network()
         G = self._Get_Generator()
         D = self._Get_Discriminator()
         D.trainable = False
         z = Input(shape = (512,))
         noise_inp = Input(shape = (self.img_height,self.img_width,1))
-        hidden = G([z,noise_inp])
+        hidden = G([F(z),noise_inp])
         x_out = D(hidden)
         GD = Model([z,noise_inp],x_out)
         GD.summary()
-        return G, D, GD
+        return F, G, D, GD
 
     def __init__(self, batch_size, img_height, img_width, channels, path):
         self.lamda = 10
@@ -146,7 +152,7 @@ class StyleGAN():
         
 
         self.const_tensor = replicate(self.const, self.batch_size)
-        self.Generator, self.Discriminator, self.Stacked_model = self._get_model()
+        self.F_network, self.Generator, self.Discriminator, self.Stacked_model = self._get_model()
         
         self.optimizer_D = Adam(learning_rate = 0.0001, beta_1 = 0, beta_2 = 0.9)
         self.optimizer_G = Adam(learning_rate = 0.0001, beta_1 = 0, beta_2 = 0.9)
@@ -172,13 +178,6 @@ class StyleGAN():
     def save_model(self, path):
         array = np.array([self.iteration, self.img_height, self.img_width, self.batch_size],dtype = int)
 
-        print("Backup...",end='')
-        if os.path.isfile(os.path.join(path,'Model.h5')):
-            os.rename(os.path.join(path,'Model.h5'),os.path.join(path,'Model.bak'))
-            os.rename(os.path.join(path,'Generator.h5'),os.path.join(path,'Generator.bak'))
-            os.rename(os.path.join(path,'Discriminator.h5'),os.path.join(path,'Discriminator.bak'))
-        print("Done!")
-
         print("Saving...",end='')
         with h5py.File(os.path.join(path, 'Model.h5'), 'w') as f: 
             dset = f.create_dataset("model_details", data = array)
@@ -192,7 +191,10 @@ class StyleGAN():
             self.iteration = data[0]
             self.img_height, self.img_width = data[1], data[2]
             self.batch_size = data[3]
+        self.F_network.load_weights(os.path.join(path,'Mapping_Network.h5'))
         self.Generator.load_weights(os.path.join(path, 'Generator.h5'))
+        
+
         self.Discriminator.load_weights(os.path.join(path, 'Discriminator.h5'))
 
     def save_const(self, path):
