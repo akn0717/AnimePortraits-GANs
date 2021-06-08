@@ -1,3 +1,4 @@
+from tensorflow.python.keras.layers.convolutional import Cropping2D, UpSampling2D
 from loss_function import *
 from keras.models import Model
 from keras.layers import Conv2D, Dense, Activation, Flatten, Reshape, Input, UpSampling2D, Add
@@ -30,14 +31,14 @@ def G_block(x, w, noise_inp, filter):
     y_s, y_b = A_block(w, filter)
     hidden = Add() ([hidden,noise])
     hidden = AdaInstanceNormalization() ([hidden, y_b, y_s])
-    hidden = Activation('relu') (hidden)
+    hidden = LeakyReLU(0.2) (hidden)
 
     hidden = Conv2D(filter,(3,3),padding = 'same') (hidden)
     noise = B_block(noise_inp, filter, hidden.shape[1])
     y_s, y_b = A_block(w, filter)
     hidden = Add() ([hidden,noise])
     hidden = AdaInstanceNormalization() ([hidden, y_b, y_s])
-    x_out = Activation('relu') (hidden)
+    x_out = LeakyReLU(0.2) (hidden)
 
     to_rgb = Conv2D(3, (1,1), padding = 'same') (x_out)
     to_rgb = UpSampling2D(size = (int(256/hidden.shape[1]),int(256/hidden.shape[1]))) (to_rgb)
@@ -58,28 +59,22 @@ def replicate(const, batch_size):
     ans = []
     for _ in range(batch_size):
         ans.append(const)
-    ans = tf.constant(np.array(ans), dtype = float)
+    ans = tf.constant(np.array(ans))
     return ans
 
 class StyleGAN():
-    
-    def _Get_Mapping_Network(self):
-        z = Input(shape = (512,))
-        FC = Dense(512, activation = 'relu',name = 'FC_1') (z)
-        FC = Dense(512, activation = 'relu',name = 'FC_2') (FC)
-        FC = Dense(512, activation = 'relu',name = 'FC_3') (FC)
-        FC = Dense(512, activation = 'relu',name = 'FC_4') (FC)
-        FC = Dense(512, activation = 'relu',name = 'FC_5') (FC)
-        FC = Dense(512, activation = 'relu',name = 'FC_6') (FC)
-        FC = Dense(512, activation = 'relu',name = 'FC_7') (FC)
-        w = Dense(512, activation = 'relu',name = 'FC_8') (FC)
-        return Model(z,w)
-
     def _Get_Generator(self):
         x_out = []
-        
-        
-        w = Input(shape = (512,))
+        z = Input(shape = (512,))
+        FC = Dense(512, activation = LeakyReLU(0.2)) (z)
+        FC = Dense(512, activation = LeakyReLU(0.2)) (FC)
+        FC = Dense(512, activation = LeakyReLU(0.2)) (FC)
+        FC = Dense(512, activation = LeakyReLU(0.2)) (FC)
+        FC = Dense(512, activation = LeakyReLU(0.2)) (FC)
+        FC = Dense(512, activation = LeakyReLU(0.2)) (FC)
+        FC = Dense(512, activation = LeakyReLU(0.2)) (FC)
+        w = Dense(512, activation = LeakyReLU(0.2)) (FC)
+
         noise_inp = Input(shape = (self.img_height,self.img_width,1))
 
         x = self.const_tensor
@@ -87,7 +82,11 @@ class StyleGAN():
         noise = B_block(noise_inp, 512, 4)
         hidden = Add() ([x,noise])
         hidden = AdaInstanceNormalization() ([hidden, y_b, y_s])
-        hidden = Activation('relu') (hidden)
+        hidden = LeakyReLU(0.2) (hidden)
+        hidden, rgb = G_block(hidden, w, noise_inp, 512)
+        x_out.append(rgb)
+        hidden, rgb = G_block(hidden, w, noise_inp, 512)
+        x_out.append(rgb)
         hidden, rgb = G_block(hidden, w, noise_inp, 512)
         x_out.append(rgb)
         hidden, rgb = G_block(hidden, w, noise_inp, 256)
@@ -96,23 +95,19 @@ class StyleGAN():
         x_out.append(rgb)
         hidden, rgb = G_block(hidden, w, noise_inp, 64)
         x_out.append(rgb)
-        hidden, rgb = G_block(hidden, w, noise_inp, 32)
-        x_out.append(rgb)
-        hidden, rgb = G_block(hidden, w, noise_inp, 16)
-        x_out.append(rgb)
         x_out = Add() (x_out)
         x_out = Activation('tanh') (x_out)
-        model = Model([w,noise_inp],x_out)
+        model = Model([z,noise_inp],x_out)
         return model
 
     def _Get_Discriminator(self):
         x = Input(shape = (self.img_height,self.img_width,self.channels))
-        hidden = Conv2D(16,(1,1),padding='same') (x)
-        hidden = D_block(x, 16)
-        hidden = D_block(hidden, 32)
-        hidden = D_block(hidden, 64)
+        hidden = Conv2D(64,(1,1),padding='same') (x)
+        hidden = D_block(x, 64)
         hidden = D_block(hidden, 128)
         hidden = D_block(hidden, 256)
+        hidden = D_block(hidden, 512)
+        hidden = D_block(hidden, 512)
         hidden = D_block(hidden, 512)
         hidden = Flatten() (hidden)
         x_out = Dense(1) (hidden)
@@ -120,17 +115,16 @@ class StyleGAN():
         return model
 
     def _get_model(self):
-        F = self._Get_Mapping_Network()
         G = self._Get_Generator()
         D = self._Get_Discriminator()
         D.trainable = False
         z = Input(shape = (512,))
         noise_inp = Input(shape = (self.img_height,self.img_width,1))
-        hidden = G([F(z),noise_inp])
+        hidden = G([z,noise_inp])
         x_out = D(hidden)
         GD = Model([z,noise_inp],x_out)
         GD.summary()
-        return F, G, D, GD
+        return G, D, GD
 
     def __init__(self, batch_size, img_height, img_width, channels, path):
         self.lamda = 10
@@ -152,7 +146,7 @@ class StyleGAN():
         
 
         self.const_tensor = replicate(self.const, self.batch_size)
-        self.F_network, self.Generator, self.Discriminator, self.Stacked_model = self._get_model()
+        self.Generator, self.Discriminator, self.Stacked_model = self._get_model()
         
         self.optimizer_D = Adam(learning_rate = 0.0001, beta_1 = 0, beta_2 = 0.9)
         self.optimizer_G = Adam(learning_rate = 0.0001, beta_1 = 0, beta_2 = 0.9)
@@ -178,6 +172,13 @@ class StyleGAN():
     def save_model(self, path):
         array = np.array([self.iteration, self.img_height, self.img_width, self.batch_size],dtype = int)
 
+        print("Backup...",end='')
+        if os.path.isfile(os.path.join(path,'Model.h5')):
+            os.rename(os.path.join(path,'Model.h5'),os.path.join(path,'Model.bak'))
+            os.rename(os.path.join(path,'Generator.h5'),os.path.join(path,'Generator.bak'))
+            os.rename(os.path.join(path,'Discriminator.h5'),os.path.join(path,'Discriminator.bak'))
+        print("Done!")
+
         print("Saving...",end='')
         with h5py.File(os.path.join(path, 'Model.h5'), 'w') as f: 
             dset = f.create_dataset("model_details", data = array)
@@ -191,10 +192,7 @@ class StyleGAN():
             self.iteration = data[0]
             self.img_height, self.img_width = data[1], data[2]
             self.batch_size = data[3]
-        self.F_network.load_weights(os.path.join(path,'Mapping_Network.h5'))
         self.Generator.load_weights(os.path.join(path, 'Generator.h5'))
-        
-
         self.Discriminator.load_weights(os.path.join(path, 'Discriminator.h5'))
 
     def save_const(self, path):
