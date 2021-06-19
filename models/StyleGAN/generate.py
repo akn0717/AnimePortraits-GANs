@@ -25,10 +25,31 @@ def repeat(v, nums):
 		ans.append(v)
 	return np.array(ans)
 
+
+def mode_1(model, E_w, E_noise, batch_size, img_width, img_height, channels, latent_space, beta_1, beta_2):
+	E_w = repeat(E_w, batch_size)
+	E_noise = repeat(E_noise,batch_size)
+
+	while True:
+		noise = np.random.normal(size = (batch_size,img_height, img_width,1))
+		z = np.random.normal(size = (batch_size,latent_space))
+		
+		w = model.F_network.predict(z)
+
+		w = beta_1 * w + (1-beta_1) * E_w
+		noise = beta_2 * noise + (1-beta_2) * E_noise
+
+		res = model.Generator.predict([w,noise])
+
+		res = list(((res+1)/2)*255)
+
+		display_img(res, show = 0)
+
+
 def generate(args):
 
-	beta_1 = args.psi
-	beta_2 = 0.5
+	beta_1 = args.beta_1
+	beta_2 = args.beta_2
 	img_width, img_height = 256, 256
 	batch_size = int(args.batch_size)
 	latent_space = 512
@@ -48,31 +69,15 @@ def generate(args):
 
 	E_w /= 1000
 
-	E_w = repeat(E_w, batch_size)
-	E_noise = repeat(E_noise,batch_size)
-
-	while True:
-		noise = np.random.normal(size = (batch_size,img_height, img_width,1))
-		z = np.random.normal(size = (batch_size,latent_space))
-		
-		w = model.F_network.predict(z)
-
-		w = beta_1 * w + (1-beta_1) * E_w
-		noise = beta_2 * noise + (1-beta_2) * E_noise
-
-		res = model.Generator.predict([w,noise])
-
-		res = list(((res+1)/2)*255)
-
-		display_img(res, show = True,save_path = "Preview.jpg")
-
+	mode_1(model, E_w, E_noise, batch_size, img_width, img_height, 3, latent_space, beta_1, beta_2)
 	return
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
-	parser.add_argument('-b', '--batch_size', dest = 'batch_size', default = 9)
+	parser.add_argument('-b', '--batch_size', dest = 'batch_size', default = 4)
 	parser.add_argument('-m', '--model-path', dest = 'model_path', default = 'trained_model')
-	parser.add_argument('-psi', '--creativity', dest = 'psi', default = 0.5)
+	parser.add_argument('-b1', '--beta_1', dest = 'beta_1', type = float, default = 0.7)
+	parser.add_argument('-b2', '--beta_2', dest = 'beta_2', type = float, default = 0.2)
 	args = parser.parse_args()
 	
 	generate(args)

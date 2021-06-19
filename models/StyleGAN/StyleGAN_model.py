@@ -30,14 +30,14 @@ def G_block(x, w, noise_inp, filter):
     y_s, y_b = A_block(w, filter)
     hidden = Add() ([hidden,noise])
     hidden = AdaInstanceNormalization() ([hidden, y_b, y_s])
-    hidden = Activation('relu') (hidden)
+    hidden = Activation(LeakyReLU(0.2)) (hidden)
 
     hidden = Conv2D(filter,(3,3),padding = 'same') (hidden)
     noise = B_block(noise_inp, filter, hidden.shape[1])
     y_s, y_b = A_block(w, filter)
     hidden = Add() ([hidden,noise])
     hidden = AdaInstanceNormalization() ([hidden, y_b, y_s])
-    x_out = Activation('relu') (hidden)
+    x_out = Activation(LeakyReLU(0.2)) (hidden)
 
     to_rgb = Conv2D(3, (1,1), padding = 'same') (x_out)
     to_rgb = UpSampling2D(size = (int(256/hidden.shape[1]),int(256/hidden.shape[1]))) (to_rgb)
@@ -65,14 +65,14 @@ class StyleGAN():
     
     def _Get_Mapping_Network(self):
         z = Input(shape = (512,))
-        FC = Dense(512, activation = 'relu',name = 'FC_1') (z)
-        FC = Dense(512, activation = 'relu',name = 'FC_2') (FC)
-        FC = Dense(512, activation = 'relu',name = 'FC_3') (FC)
-        FC = Dense(512, activation = 'relu',name = 'FC_4') (FC)
-        FC = Dense(512, activation = 'relu',name = 'FC_5') (FC)
-        FC = Dense(512, activation = 'relu',name = 'FC_6') (FC)
-        FC = Dense(512, activation = 'relu',name = 'FC_7') (FC)
-        w = Dense(512, activation = 'relu',name = 'FC_8') (FC)
+        FC = Dense(512, activation = LeakyReLU(0.2),name = 'FC_1') (z)
+        FC = Dense(512, activation = LeakyReLU(0.2),name = 'FC_2') (FC)
+        FC = Dense(512, activation = LeakyReLU(0.2),name = 'FC_3') (FC)
+        FC = Dense(512, activation = LeakyReLU(0.2),name = 'FC_4') (FC)
+        FC = Dense(512, activation = LeakyReLU(0.2),name = 'FC_5') (FC)
+        FC = Dense(512, activation = LeakyReLU(0.2),name = 'FC_6') (FC)
+        FC = Dense(512, activation = LeakyReLU(0.2),name = 'FC_7') (FC)
+        w = Dense(512, activation = LeakyReLU(0.2),name = 'FC_8') (FC)
         return Model(z,w)
 
     def _Get_Generator(self):
@@ -87,7 +87,11 @@ class StyleGAN():
         noise = B_block(noise_inp, 512, 4)
         hidden = Add() ([x,noise])
         hidden = AdaInstanceNormalization() ([hidden, y_b, y_s])
-        hidden = Activation('relu') (hidden)
+        hidden = Activation(LeakyReLU(0.2)) (hidden)
+        hidden, rgb = G_block(hidden, w, noise_inp, 512)
+        x_out.append(rgb)
+        hidden, rgb = G_block(hidden, w, noise_inp, 512)
+        x_out.append(rgb)
         hidden, rgb = G_block(hidden, w, noise_inp, 512)
         x_out.append(rgb)
         hidden, rgb = G_block(hidden, w, noise_inp, 256)
@@ -96,10 +100,6 @@ class StyleGAN():
         x_out.append(rgb)
         hidden, rgb = G_block(hidden, w, noise_inp, 64)
         x_out.append(rgb)
-        hidden, rgb = G_block(hidden, w, noise_inp, 32)
-        x_out.append(rgb)
-        hidden, rgb = G_block(hidden, w, noise_inp, 16)
-        x_out.append(rgb)
         x_out = Add() (x_out)
         x_out = Activation('tanh') (x_out)
         model = Model([w,noise_inp],x_out)
@@ -107,12 +107,12 @@ class StyleGAN():
 
     def _Get_Discriminator(self):
         x = Input(shape = (self.img_height,self.img_width,self.channels))
-        hidden = Conv2D(16,(1,1),padding='same') (x)
-        hidden = D_block(x, 16)
-        hidden = D_block(hidden, 32)
-        hidden = D_block(hidden, 64)
+        hidden = Conv2D(64,(1,1),padding='same') (x)
+        hidden = D_block(x, 64)
         hidden = D_block(hidden, 128)
         hidden = D_block(hidden, 256)
+        hidden = D_block(hidden, 512)
+        hidden = D_block(hidden, 512)
         hidden = D_block(hidden, 512)
         hidden = Flatten() (hidden)
         x_out = Dense(1) (hidden)
@@ -154,8 +154,8 @@ class StyleGAN():
         self.const_tensor = replicate(self.const, self.batch_size)
         self.F_network, self.Generator, self.Discriminator, self.Stacked_model = self._get_model()
         
-        self.optimizer_D = Adam(learning_rate = 0.0001, beta_1 = 0, beta_2 = 0.9)
-        self.optimizer_G = Adam(learning_rate = 0.0001, beta_1 = 0, beta_2 = 0.9)
+        self.optimizer_D = Adam(learning_rate = 1e-5, beta_1 = 0, beta_2 = 0.9)
+        self.optimizer_G = Adam(learning_rate = 1e-5, beta_1 = 0, beta_2 = 0.9)
 
     def train_on_batch_G(self):
         with tf.GradientTape() as tape:

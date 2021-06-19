@@ -69,7 +69,7 @@ def train(args):
 		if model.iteration%int(args.preview_iteration)==0:
 			z_sample = np.random.normal(size = (batch_size,latent_space))
 			noise_sample = np.random.normal(size = (batch_size, img_height, img_width,1))
-			result = ((model.Generator.predict([z_sample, noise_sample])+1)/2)*255
+			result = ((model.Generator.predict([z, noise])+1)/2)*255
 			display_img(list(result), save_path = os.path.join(args.model_path,'Preview.jpg'))
 			plot_multiple_vectors([d_loss,g_loss], title = 'loss', xlabel='iterations', legends = ['Discriminator Loss', 'Generator Loss'], save_path = 'loss')
 		
