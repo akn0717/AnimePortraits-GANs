@@ -33,6 +33,7 @@ def mode_1(model, E_w, E_noise, batch_size, img_width, img_height, channels, lat
 	while True:
 		noise = np.random.normal(size = (batch_size,img_height, img_width,1))
 		z = np.random.normal(size = (batch_size,latent_space))
+		#z = np.array(repeat(z,batch_size))
 		
 		w = model.F_network.predict(z)
 
@@ -103,15 +104,14 @@ def generate(args):
 
 	E_w /= 1000
 
-	mode_2(model, E_w, E_noise, batch_size, img_width, img_height, 3, latent_space, beta_1, beta_2)
+	mode_1(model, E_w, E_noise, batch_size, img_width, img_height, 3, latent_space, beta_1, beta_2)
 	return
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
-	parser.add_argument('-b', '--batch_size', dest = 'batch_size', default = 1)
+	parser.add_argument('-b', '--batch_size', dest = 'batch_size', default = 9)
 	parser.add_argument('-m', '--model-path', dest = 'model_path', default = 'trained_model')
-	parser.add_argument('-b1', '--beta_1', dest = 'beta_1', type = float, default = 0.7)
-	parser.add_argument('-b2', '--beta_2', dest = 'beta_2', type = float, default = 0.2)
+	parser.add_argument('-b1', '--beta_1', dest = 'beta_1', type = float, default = 1.0)
+	parser.add_argument('-b2', '--beta_2', dest = 'beta_2', type = float, default = 1.0)
 	args = parser.parse_args()
-	
 	generate(args)
