@@ -109,9 +109,9 @@ def generate(args):
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
-	parser.add_argument('-b', '--batch_size', dest = 'batch_size', default = 9)
+	parser.add_argument('-b', '--batch_size', dest = 'batch_size', default = 4)
 	parser.add_argument('-m', '--model-path', dest = 'model_path', default = 'trained_model')
-	parser.add_argument('-b1', '--beta_1', dest = 'beta_1', type = float, default = 1.0)
-	parser.add_argument('-b2', '--beta_2', dest = 'beta_2', type = float, default = 1.0)
+	parser.add_argument('-b1', '--beta_1', dest = 'beta_1', type = float, default = 0.7)
+	parser.add_argument('-b2', '--beta_2', dest = 'beta_2', type = float, default = 0.3)
 	args = parser.parse_args()
 	generate(args)

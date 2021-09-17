@@ -3,7 +3,7 @@ from keras.models import Model
 from keras.layers import Conv2D, Dense, Activation, Flatten, Reshape, Input, UpSampling2D, Add
 from keras.layers import LeakyReLU, Cropping2D, AveragePooling2D
 from keras.optimizers import Adam
-from AdaIN import AdaInstanceNormalization
+from Custom_layers import AdaIN
 
 import h5py
 
@@ -23,24 +23,24 @@ def B_block(noise, filter, size):
     return out
 
 def G_block(x, w, noise_inp, filter):
-    hidden = UpSampling2D() (x)
+    hidden = UpSampling2D(interpolation = 'bilinear') (x)
 
     hidden = Conv2D(filter,(3,3),padding = 'same') (hidden)
     noise = B_block(noise_inp, filter, hidden.shape[1])
     y_s, y_b = A_block(w, filter)
     hidden = Add() ([hidden,noise])
-    hidden = AdaInstanceNormalization() ([hidden, y_b, y_s])
-    hidden = Activation(LeakyReLU(0.2)) (hidden)
+    hidden = AdaIN() ([hidden, y_b, y_s])
+    hidden = Activation('relu') (hidden)
 
     hidden = Conv2D(filter,(3,3),padding = 'same') (hidden)
     noise = B_block(noise_inp, filter, hidden.shape[1])
     y_s, y_b = A_block(w, filter)
     hidden = Add() ([hidden,noise])
-    hidden = AdaInstanceNormalization() ([hidden, y_b, y_s])
-    x_out = Activation(LeakyReLU(0.2)) (hidden)
+    hidden = AdaIN() ([hidden, y_b, y_s])
+    x_out = Activation('relu') (hidden)
 
     to_rgb = Conv2D(3, (1,1), padding = 'same') (x_out)
-    to_rgb = UpSampling2D(size = (int(256/hidden.shape[1]),int(256/hidden.shape[1]))) (to_rgb)
+    to_rgb = UpSampling2D(size = (int(256/hidden.shape[1]),int(256/hidden.shape[1])),interpolation = 'bilinear') (to_rgb)
     return x_out, to_rgb
     
 def D_block(x, filter):
@@ -65,14 +65,22 @@ class StyleGAN():
     
     def _Get_Mapping_Network(self):
         z = Input(shape = (512,))
-        FC = Dense(512, activation = LeakyReLU(0.2),name = 'FC_1') (z)
-        FC = Dense(512, activation = LeakyReLU(0.2),name = 'FC_2') (FC)
-        FC = Dense(512, activation = LeakyReLU(0.2),name = 'FC_3') (FC)
-        FC = Dense(512, activation = LeakyReLU(0.2),name = 'FC_4') (FC)
-        FC = Dense(512, activation = LeakyReLU(0.2),name = 'FC_5') (FC)
-        FC = Dense(512, activation = LeakyReLU(0.2),name = 'FC_6') (FC)
-        FC = Dense(512, activation = LeakyReLU(0.2),name = 'FC_7') (FC)
-        w = Dense(512, activation = LeakyReLU(0.2),name = 'FC_8') (FC)
+        FC = Dense(512) (z)
+        FC = Activation('relu') (FC)
+        FC = Dense(512) (FC)
+        FC = Activation('relu') (FC)
+        FC = Dense(512) (FC)
+        FC = Activation('relu') (FC)
+        FC = Dense(512) (FC)
+        FC = Activation('relu') (FC)
+        FC = Dense(512) (FC)
+        FC = Activation('relu') (FC)
+        FC = Dense(512) (FC)
+        FC = Activation('relu') (FC)
+        FC = Dense(512) (FC)
+        FC = Activation('relu') (FC)
+        FC = Dense(512) (FC)
+        w = Activation('relu') (FC)
         return Model(z,w)
 
     def _Get_Generator(self):
@@ -86,8 +94,16 @@ class StyleGAN():
         y_s, y_b = A_block(w, 512)
         noise = B_block(noise_inp, 512, 4)
         hidden = Add() ([x,noise])
-        hidden = AdaInstanceNormalization() ([hidden, y_b, y_s])
-        hidden = Activation(LeakyReLU(0.2)) (hidden)
+        hidden = AdaIN() ([hidden, y_b, y_s])
+        hidden = Activation('relu') (hidden)
+
+        hidden = Conv2D(512,(3,3),padding='same') (hidden)
+        y_s, y_b = A_block(w, 512)
+        noise = B_block(noise_inp, 512, 4)
+        hidden = Add() ([hidden,noise])
+        hidden = AdaIN() ([hidden, y_b, y_s])
+        hidden = Activation('relu') (hidden)
+
         hidden, rgb = G_block(hidden, w, noise_inp, 512)
         x_out.append(rgb)
         hidden, rgb = G_block(hidden, w, noise_inp, 512)
@@ -129,10 +145,11 @@ class StyleGAN():
         hidden = G([F(z),noise_inp])
         x_out = D(hidden)
         GD = Model([z,noise_inp],x_out)
+        FG = Model([z,noise_inp],hidden)
         GD.summary()
-        return F, G, D, GD
+        return F, G, D, FG, GD
 
-    def __init__(self, batch_size, img_height, img_width, channels, path):
+    def __init__(self, batch_size, img_height, img_width, channels, path, lr = 3e-6):
         self.lamda = 10
         self.reals = None
         self.z = None
@@ -141,8 +158,12 @@ class StyleGAN():
         self.batch_size = batch_size
         self.iteration = 0
         self.path = path
-
+        self.lr = lr
         self.const = None
+
+        self.g_loss = []
+        self.d_loss = []
+
         self.load_const(path)
 
         self.img_height = img_height
@@ -152,23 +173,23 @@ class StyleGAN():
         
 
         self.const_tensor = replicate(self.const, self.batch_size)
-        self.F_network, self.Generator, self.Discriminator, self.Stacked_model = self._get_model()
+        self.F_network, self.Generator, self.Discriminator, self.FG, self.Stacked_model = self._get_model()
         
-        self.optimizer_D = Adam(learning_rate = 1e-5, beta_1 = 0, beta_2 = 0.9)
-        self.optimizer_G = Adam(learning_rate = 1e-5, beta_1 = 0, beta_2 = 0.9)
+        self.optimizer_D = Adam(learning_rate = self.lr, beta_1 = 0, beta_2 = 0.9)
+        self.optimizer_G = Adam(learning_rate = self.lr, beta_1 = 0, beta_2 = 0.9)
 
     def train_on_batch_G(self):
         with tf.GradientTape() as tape:
             logits = self.Stacked_model([self.z,self.noise], training = True)
             loss_value = WGAN_loss_G(logits)
-        grads = tape.gradient(loss_value, self.Generator.trainable_weights)
+        grads = tape.gradient(loss_value, self.FG.trainable_weights)
 
-        self.optimizer_G.apply_gradients(zip(grads, self.Generator.trainable_weights))
+        self.optimizer_G.apply_gradients(zip(grads, self.FG.trainable_weights))
         return float(loss_value)
 
     def train_on_batch_D(self):
         with tf.GradientTape() as tape:
-            self.fakes = self.Generator([self.z,self.noise],training = True)
+            self.fakes = self.FG([self.z,self.noise],training = True)
             loss_value = WGAN_loss_D(self)
         grads = tape.gradient(loss_value, self.Discriminator.trainable_weights)
 
@@ -176,11 +197,22 @@ class StyleGAN():
         return float(loss_value)
     
     def save_model(self, path):
-        array = np.array([self.iteration, self.img_height, self.img_width, self.batch_size],dtype = int)
+        array = np.array([self.iteration],dtype = int)
+        
+        print("Backup...",end='')
+        if os.path.isfile(os.path.join(path,'Model.h5')):
+            os.rename(os.path.join(path,'Model.h5'),os.path.join(path,'Model.bak'))
+            os.rename(os.path.join(path,'Mapping_Network.h5'),os.path.join(path,'Mapping_Network.bak'))
+            os.rename(os.path.join(path,'Generator.h5'),os.path.join(path,'Generator.bak'))
+            os.rename(os.path.join(path,'Discriminator.h5'),os.path.join(path,'Discriminator.bak'))
+        print("Done!")
 
         print("Saving...",end='')
         with h5py.File(os.path.join(path, 'Model.h5'), 'w') as f: 
             dset = f.create_dataset("model_details", data = array)
+            dset = f.create_dataset('d_loss', data= self.d_loss)
+            dset = f.create_dataset('g_loss', data= self.g_loss)
+        self.F_network.save_weights(os.path.join(path, 'Mapping_Network.h5'))
         self.Generator.save_weights(os.path.join(path, 'Generator.h5'))
         self.Discriminator.save_weights(os.path.join(path, 'Discriminator.h5'))
         print("Done!")
@@ -189,12 +221,10 @@ class StyleGAN():
         with h5py.File(os.path.join(path, 'Model.h5'),'r') as f:
             data = f['model_details']
             self.iteration = data[0]
-            self.img_height, self.img_width = data[1], data[2]
-            self.batch_size = data[3]
+            self.d_loss = list(np.array(f['d_loss']))
+            self.g_loss = list(np.array(f['g_loss']))
         self.F_network.load_weights(os.path.join(path,'Mapping_Network.h5'))
         self.Generator.load_weights(os.path.join(path, 'Generator.h5'))
-        
-
         self.Discriminator.load_weights(os.path.join(path, 'Discriminator.h5'))
 
     def save_const(self, path):

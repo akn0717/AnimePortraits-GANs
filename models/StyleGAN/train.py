@@ -16,6 +16,7 @@ def train(args):
 
 	data_dir = args.dataset
 	batch_size = int(args.batch_size)
+	lr = float(args.lr)
 	latent_space = 512
 	cnt = 0
 
@@ -29,11 +30,13 @@ def train(args):
 	D_loss = 0
 
 
-	model = StyleGAN(batch_size = batch_size, img_height = img_height, img_width = img_width, channels = 3, path = args.model_path)
+	model = StyleGAN(batch_size = batch_size, img_height = img_height, img_width = img_width, channels = 3, path = args.model_path, lr = lr)
 	
 	if (args.train_new == False):
 		model.load_model(args.model_path)
 	
+	model.save_model(args.model_path)
+
 	img_files = [f for f in os.listdir(data_dir) if os.path.isfile(os.path.join(data_dir, f))]
 	n = len(img_files)
 	n_critic = 5
@@ -49,19 +52,19 @@ def train(args):
 			##Train Discriminator
 			model.Discriminator.trainable = True
 
-			D_loss = model.train_on_batch_D()
+			D_loss = -model.train_on_batch_D()
 
 		###Train Generator
 		model.z = np.random.normal(size = (batch_size,latent_space))
 		model.noise = np.random.normal(size = (batch_size, img_height, img_width,1))
 		model.Discriminator.trainable = False
-		G_loss = model.train_on_batch_G()
+		G_loss = -model.train_on_batch_G()
 
-		d_loss.append(-D_loss)
-		g_loss.append(G_loss)
+		model.d_loss.append(D_loss)
+		model.g_loss.append(G_loss)
 
 		if model.iteration%int(args.detail_iteration)==0:
-			print('epoch: ', int(model.iteration*model.batch_size/n)+1,' iterations: ',model.iteration,' loss D: ',-D_loss,' loss G: ',G_loss)
+			print('epoch: ', int(model.iteration*model.batch_size/n)+1,' iterations: ',model.iteration,' loss D: ',D_loss,' loss G: ',G_loss)
 
 		if model.iteration%int(args.save_iteration)==0:
 			model.save_model(args.model_path)
@@ -69,12 +72,12 @@ def train(args):
 		if model.iteration%int(args.preview_iteration)==0:
 			z_sample = np.random.normal(size = (batch_size,latent_space))
 			noise_sample = np.random.normal(size = (batch_size, img_height, img_width,1))
-			result = ((model.Generator.predict([z, noise])+1)/2)*255
+			result = ((model.FG.predict([z, noise])+1)/2)*255
 			display_img(list(result), save_path = os.path.join(args.model_path,'Preview.jpg'))
-			plot_multiple_vectors([d_loss,g_loss], title = 'loss', xlabel='iterations', legends = ['Discriminator Loss', 'Generator Loss'], save_path = 'loss')
+			plot_multiple_vectors([model.d_loss,model.g_loss], title = 'loss', xlabel='iterations', legends = ['Discriminator Loss', 'Generator Loss'], save_path = 'loss')
 		
 		if model.iteration%1000==0:
-			result = ((model.Generator.predict([z, noise])+1)/2)*255
+			result = ((model.FG.predict([z, noise])+1)/2)*255
 			display_img(list(result), save_path = '/content/drive/MyDrive/Preview'+str(model.iteration)+'.jpg')
 	
 	return
@@ -82,12 +85,13 @@ def train(args):
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
 	parser.add_argument('-n', '--new', action = 'store_true', dest = 'train_new', default = False)
-	parser.add_argument('-b', '--batch_size', dest = 'batch_size', default = 16)
+	parser.add_argument('-b', '--batch_size', dest = 'batch_size', default = 2)
 	parser.add_argument('-de', '--iteration-detail', dest = 'detail_iteration', default = 10)
 	parser.add_argument('-p', '--iteration-preview', dest = 'preview_iteration', default = 100)
 	parser.add_argument('-s', '--iteration-save', dest = 'save_iteration', default = 100)
-	parser.add_argument('-d', '--data', dest = 'dataset', default = 'Dataset')
+	parser.add_argument('-d', '--data', dest = 'dataset', default = 'dataset')
 	parser.add_argument('-m', '--model-path', dest = 'model_path', default = 'trained_model')
+	parser.add_argument('-lr', '--learning-rate', dest = 'lr',type = float, default = 5e-6)
 	args = parser.parse_args()
 	
 	train(args)
