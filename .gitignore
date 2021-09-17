@@ -130,4 +130,3 @@ dmypy.json
 
 
 models/StyleGAN/dataset
-models/StyleGAN/AdaIN.py
