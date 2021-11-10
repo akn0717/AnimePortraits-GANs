@@ -2,5 +2,5 @@ numpy==1.19.2
 keras==2.4.3
 matplotlib
 scikit_learn==0.24.2
-tensorflow==2.4.1
+tensorflow==2.5.2
 h5py==2.10.0
