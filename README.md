@@ -9,7 +9,8 @@ A Collection of my reimplemented GAN architectures which are my most favorite ma
 
 Those GAN's were trained on soumik12345's dataset and danbooru dataset processed by TWDNE
 
-Link: https://www.kaggle.com/soumikrakshit/anime-faces
+soumik12345's dataset: https://www.kaggle.com/soumikrakshit/anime-faces
+Danbooru dataset from GWEN: https://www.gwern.net/TWDNE
 
 ## Samples from soumik12345's dataset
 ![Training_Samples](samples_images.jpg)
@@ -21,4 +22,4 @@ Link: https://www.kaggle.com/soumikrakshit/anime-faces
 ![StyleGAN_Preview](StyleGANPreview.jpg)
 
 
-btw, I also like other GAN but not yet know how to implement xD
+Btw, I also like other GAN but not yet know how to implement xD
