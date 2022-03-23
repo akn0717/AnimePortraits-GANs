@@ -1,18 +1,24 @@
 # AnimeGAN-Keras
-Using Generative Adverserial Network to generate anime faces in Keras
+A Collection of my reimplemented GAN architectures which are my most favorite machine learning models.
 
 1. Vanila GAN
 2. Wasserstein GAN with Gradient Penalty
+3. StyleGAN without progressive trainning
 
 ## Datasets
 
-Those GAN's were trained on 21,551 images of soumik12345's datasets
+Those GAN's were trained on soumik12345's dataset and danbooru dataset processed by TWDNE
 
 Link: https://www.kaggle.com/soumikrakshit/anime-faces
 
-## Samples
-![Original](Original_images.jpg)
+## Samples from soumik12345's dataset
+![Original](samples_images.jpg)
 
-## Some generated examples
-![Preview](Preview.jpg)
+## Some generated examples from StyleGAN
+![DCGAN_Preview](DCGANPreview.jpg)
 
+## Some generated examples from StyleGAN
+![StyleGAN_Preview](StyleGANPreview.jpg)
+
+
+btw, I also like other GAN but not yet know how to implement xD
