@@ -13,7 +13,7 @@ soumik12345's dataset: https://www.kaggle.com/soumikrakshit/anime-faces
 Danbooru dataset from GWEN: https://www.gwern.net/TWDNE
 
 ## Samples from soumik12345's dataset
-![Training_Sample](Training_Samples.jpg)
+![Training_Samples](Training_Samples.jpg)
 
 ## Generated samples from DCGAN
 ![DCGAN_Preview](DCGANPreview.jpg)
