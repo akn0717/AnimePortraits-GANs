@@ -12,12 +12,12 @@ Those GAN's were trained on soumik12345's dataset and danbooru dataset processed
 Link: https://www.kaggle.com/soumikrakshit/anime-faces
 
 ## Samples from soumik12345's dataset
-![Original](samples_images.jpg)
+![Training_Sample](Training_Samples.jpg)
 
-## Some generated examples from StyleGAN
+## Generated samples from DCGAN
 ![DCGAN_Preview](DCGANPreview.jpg)
 
-## Some generated examples from StyleGAN
+## Generated samples from StyleGAN
 ![StyleGAN_Preview](StyleGANPreview.jpg)
 
 
