@@ -3,7 +3,7 @@ A Collection of my reimplemented GAN architectures which are my most favorite ma
 
 1. Vanila GAN
 2. Wasserstein GAN with Gradient Penalty
-3. StyleGAN without progressive trainning
+3. StyleGAN without progressive training
 
 ## Datasets
 
@@ -12,7 +12,7 @@ Those GAN's were trained on soumik12345's dataset and danbooru dataset processed
 Link: https://www.kaggle.com/soumikrakshit/anime-faces
 
 ## Samples from soumik12345's dataset
-![Original](samples_images.jpg)
+![Training_Samples](samples_images.jpg)
 
 ## Some generated examples from StyleGAN
 ![DCGAN_Preview](DCGANPreview.jpg)
