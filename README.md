@@ -7,10 +7,10 @@ A Collection of my reimplemented GAN architectures which are my most favorite ma
 
 ## Datasets
 
-Those GAN's were trained on soumik12345's dataset and danbooru dataset processed by TWDNE
+Those GAN models were trained using soumik12345's dataset and Danbooru dataset processed by GWERN
 
 soumik12345's dataset: https://www.kaggle.com/soumikrakshit/anime-faces
-Danbooru dataset from GWEN: https://www.gwern.net/TWDNE
+Danbooru dataset from GWERN: https://www.gwern.net/TWDNE
 
 ## Samples from soumik12345's dataset
 ![Training_Samples](Training_Samples.jpg)
