@@ -1,5 +1,5 @@
 # StyleGAN-Keras
-A customized StyleGAN integrated StyleGAN 2 network architecture
+A reimplementation StyleGAN in Keras
 
 ## Idea and progress
 + WGAN-GP baseline model
