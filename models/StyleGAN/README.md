@@ -6,7 +6,7 @@ A reimplementation StyleGAN in Keras
 + Mapping network Z to W
 + Inconsequence noise
 + Adaptive instance normalization
-+ Progressive Training (Replaced by StyleGAN2's new structure)
++ StyleGAN2's new structure (Replaced for Progressive Training)
 
 ## Recommmended Dataset
 Danbooru dataset of portrait faces processed by GWERN: https://www.gwern.net/BigGAN
