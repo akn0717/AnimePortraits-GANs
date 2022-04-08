@@ -27,4 +27,16 @@ pip install -r requirements.txt
 - Generate random anime faces
 ```bash
 python generate.py [-options]
+
+options:
+-b, --batch_size
+    Number of generated images
+-m, --model-path
+    Path to trained model
+-mode, --mode
+    Visualization mode, 0 for static, 1 for interpolation
+-b1, --beta_1
+    Degree of Feature Variation
+-b2, --beta_2
+    Degree of Style Variation
 ```
