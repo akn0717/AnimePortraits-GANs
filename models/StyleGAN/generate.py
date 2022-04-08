@@ -104,13 +104,17 @@ def generate(args):
 
 	E_w /= 1000
 
-	mode_2(model, E_w, E_noise, batch_size, img_width, img_height, 3, latent_space, beta_1, beta_2)
+	if (args.mode == 0):
+		mode_1(model, E_w, E_noise, batch_size, img_width, img_height, 3, latent_space, beta_1, beta_2)
+	else:
+		mode_2(model, E_w, E_noise, batch_size, img_width, img_height, 3, latent_space, beta_1, beta_2)
 	return
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
 	parser.add_argument('-b', '--batch_size', dest = 'batch_size', default = 4)
 	parser.add_argument('-m', '--model-path', dest = 'model_path', default = 'trained_model')
+	parser.add_argument('-mode', '--mode', dest = 'mode', type = int, default = 0)
 	parser.add_argument('-b1', '--beta_1', dest = 'beta_1', type = float, default = 0.7)
 	parser.add_argument('-b2', '--beta_2', dest = 'beta_2', type = float, default = 0.3)
 	args = parser.parse_args()
