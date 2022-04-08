@@ -1,8 +1,0 @@
-StyleGAN
-
-+ WGAN-GP baseline model
-+ Mapping network Z to W
-+ Inconsequence noise
-+ Adaptive instance normalization
-+ Progressive Training (Replaced by StyleGAN2's new structure)
-
