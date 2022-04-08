@@ -3,7 +3,7 @@ from keras.models import Model
 from keras.layers import Conv2D, Dense, Activation, Flatten, Reshape, Input, UpSampling2D, Add
 from keras.layers import LeakyReLU, Cropping2D, AveragePooling2D
 from keras.optimizers import Adam
-from AdaIN import AdaInstanceNormalization
+from Custom_layers import AdaIN
 import tensorflow as tf
 import numpy as np
 from StyleGAN_model import replicate,A_block,B_block,D_block,G_block
@@ -21,26 +21,23 @@ def Generator_old():
         x_out = []
         
         z = Input(shape = (512,))
-        FC = Dense(512, activation = LeakyReLU(0.2),name = 'FC_1') (z)
-        FC = Dense(512, activation = LeakyReLU(0.2),name = 'FC_2') (FC)
-        FC = Dense(512, activation = LeakyReLU(0.2),name = 'FC_3') (FC)
-        FC = Dense(512, activation = LeakyReLU(0.2),name = 'FC_4') (FC)
-        FC = Dense(512, activation = LeakyReLU(0.2),name = 'FC_5') (FC)
-        FC = Dense(512, activation = LeakyReLU(0.2),name = 'FC_6') (FC)
-        FC = Dense(512, activation = LeakyReLU(0.2),name = 'FC_7') (FC)
-        w = Dense(512, activation = LeakyReLU(0.2),name = 'FC_8') (FC)
+        FC = Dense(512, activation = 'relu',name = 'FC_1') (z)
+        FC = Dense(512, activation = 'relu',name = 'FC_2') (FC)
+        FC = Dense(512, activation = 'relu',name = 'FC_3') (FC)
+        FC = Dense(512, activation = 'relu',name = 'FC_4') (FC)
+        FC = Dense(512, activation = 'relu',name = 'FC_5') (FC)
+        FC = Dense(512, activation = 'relu',name = 'FC_6') (FC)
+        FC = Dense(512, activation = 'relu',name = 'FC_7') (FC)
+        w = Dense(512, activation = 'relu',name = 'FC_8') (FC)
         noise_inp = Input(shape = (img_height,img_width,1))
 
         x = const_tensor
         y_s, y_b = A_block(w, 512)
         noise = B_block(noise_inp, 512, 4)
         hidden = Add() ([x,noise])
-        hidden = AdaInstanceNormalization() ([hidden, y_b, y_s])
-        hidden = Activation(LeakyReLU(0.2)) (hidden)
-        hidden, rgb = G_block(hidden, w, noise_inp, 512)
-        x_out.append(rgb)
-        hidden, rgb = G_block(hidden, w, noise_inp, 512)
-        x_out.append(rgb)
+        hidden = AdaIN() ([hidden, y_b, y_s])
+        hidden = Activation('relu') (hidden)
+
         hidden, rgb = G_block(hidden, w, noise_inp, 512)
         x_out.append(rgb)
         hidden, rgb = G_block(hidden, w, noise_inp, 256)
@@ -57,14 +54,14 @@ def Generator_old():
 
 def Mapping_network():
         z = Input(shape = (512,))
-        FC = Dense(512, activation = LeakyReLU(0.2),name = 'FC_1') (z)
-        FC = Dense(512, activation = LeakyReLU(0.2),name = 'FC_2') (FC)
-        FC = Dense(512, activation = LeakyReLU(0.2),name = 'FC_3') (FC)
-        FC = Dense(512, activation = LeakyReLU(0.2),name = 'FC_4') (FC)
-        FC = Dense(512, activation = LeakyReLU(0.2),name = 'FC_5') (FC)
-        FC = Dense(512, activation = LeakyReLU(0.2),name = 'FC_6') (FC)
-        FC = Dense(512, activation = LeakyReLU(0.2),name = 'FC_7') (FC)
-        w = Dense(512, activation = LeakyReLU(0.2),name = 'FC_8') (FC)
+        FC = Dense(512, activation = 'relu',name = 'FC_1') (z)
+        FC = Dense(512, activation = 'relu',name = 'FC_2') (FC)
+        FC = Dense(512, activation = 'relu',name = 'FC_3') (FC)
+        FC = Dense(512, activation = 'relu',name = 'FC_4') (FC)
+        FC = Dense(512, activation = 'relu',name = 'FC_5') (FC)
+        FC = Dense(512, activation = 'relu',name = 'FC_6') (FC)
+        FC = Dense(512, activation = 'relu',name = 'FC_7') (FC)
+        w = Dense(512, activation = 'relu',name = 'FC_8') (FC)
         model = Model(z,w)
         return model
 
@@ -79,12 +76,9 @@ def Generator():
         y_s, y_b = A_block(w, 512)
         noise = B_block(noise_inp, 512, 4)
         hidden = Add() ([x,noise])
-        hidden = AdaInstanceNormalization() ([hidden, y_b, y_s])
-        hidden = Activation(LeakyReLU(0.2)) (hidden)
-        hidden, rgb = G_block(hidden, w, noise_inp, 512)
-        x_out.append(rgb)
-        hidden, rgb = G_block(hidden, w, noise_inp, 512)
-        x_out.append(rgb)
+        hidden = AdaIN() ([hidden, y_b, y_s])
+        hidden = Activation('relu') (hidden)
+
         hidden, rgb = G_block(hidden, w, noise_inp, 512)
         x_out.append(rgb)
         hidden, rgb = G_block(hidden, w, noise_inp, 256)

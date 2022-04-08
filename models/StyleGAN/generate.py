@@ -104,7 +104,7 @@ def generate(args):
 
 	E_w /= 1000
 
-	mode_1(model, E_w, E_noise, batch_size, img_width, img_height, 3, latent_space, beta_1, beta_2)
+	mode_2(model, E_w, E_noise, batch_size, img_width, img_height, 3, latent_space, beta_1, beta_2)
 	return
 
 if __name__ == "__main__":

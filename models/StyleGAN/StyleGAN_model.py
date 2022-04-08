@@ -23,7 +23,7 @@ def B_block(noise, filter, size):
     return out
 
 def G_block(x, w, noise_inp, filter):
-    hidden = UpSampling2D(interpolation = 'bilinear') (x)
+    hidden = UpSampling2D() (x)
 
     hidden = Conv2D(filter,(3,3),padding = 'same') (hidden)
     noise = B_block(noise_inp, filter, hidden.shape[1])
@@ -40,7 +40,7 @@ def G_block(x, w, noise_inp, filter):
     x_out = Activation('relu') (hidden)
 
     to_rgb = Conv2D(3, (1,1), padding = 'same') (x_out)
-    to_rgb = UpSampling2D(size = (int(256/hidden.shape[1]),int(256/hidden.shape[1])),interpolation = 'bilinear') (to_rgb)
+    to_rgb = UpSampling2D(size = (int(256/hidden.shape[1]),int(256/hidden.shape[1]))) (to_rgb)
     return x_out, to_rgb
     
 def D_block(x, filter):
@@ -97,17 +97,6 @@ class StyleGAN():
         hidden = AdaIN() ([hidden, y_b, y_s])
         hidden = Activation('relu') (hidden)
 
-        hidden = Conv2D(512,(3,3),padding='same') (hidden)
-        y_s, y_b = A_block(w, 512)
-        noise = B_block(noise_inp, 512, 4)
-        hidden = Add() ([hidden,noise])
-        hidden = AdaIN() ([hidden, y_b, y_s])
-        hidden = Activation('relu') (hidden)
-
-        hidden, rgb = G_block(hidden, w, noise_inp, 512)
-        x_out.append(rgb)
-        hidden, rgb = G_block(hidden, w, noise_inp, 512)
-        x_out.append(rgb)
         hidden, rgb = G_block(hidden, w, noise_inp, 512)
         x_out.append(rgb)
         hidden, rgb = G_block(hidden, w, noise_inp, 256)
