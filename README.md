@@ -24,7 +24,7 @@ Danbooru dataset from GWERN: https://www.gwern.net/TWDNE
 
 Btw, I also like other GAN but not yet know how to implement xD
 
-# References
+## References
 
 Goodfellow, I. J., Pouget-Abadie, J., Mirza, M., Xu, B., Warde-Farley, D., Ozair, S., … Bengio, Y. (2014). Generative Adversarial Networks. doi:10.48550/ARXIV.1406.2661 <br>
 
