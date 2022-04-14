@@ -40,3 +40,9 @@ options:
 -b2, --beta_2
     Degree of Style Variation
 ```
+
+## References
+
+Karras, T., Laine, S., & Aila, T. (2018). A Style-Based Generator Architecture for Generative Adversarial Networks. doi:10.48550/ARXIV.1812.04948 <br>
+
+Karras, T., Laine, S., Aittala, M., Hellsten, J., Lehtinen, J., & Aila, T. (2019). Analyzing and Improving the Image Quality of StyleGAN. doi:10.48550/ARXIV.1912.04958
