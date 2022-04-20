@@ -31,5 +31,6 @@ def load_sampling(data_dir,name_files, W, H):
     img_files = name_files
     for f in img_files:
         img_load = cv2.imread(os.path.join(data_dir,f))
+        img_load = cv2.resize(img_load, (H,W))
         img_list.append(img_load)
     return img_list
