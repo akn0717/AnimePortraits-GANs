@@ -1,11 +1,11 @@
 import pickle
-from tkinter import Image
-from loss_function import *
+
+import numpy as np
+from losses import WGAN_Disciminator_loss, WGAN_Generator_Loss
 from keras.models import Model
 from keras.layers import Conv2D, Dense, Activation, Flatten, Reshape, Input, UpSampling2D, Add
 from keras.layers import LeakyReLU, Cropping2D, AveragePooling2D
 import tensorflow as tf
-from keras.optimizers import Adam
 from Custom_layers import AdaIN
 
 import h5py
@@ -211,7 +211,7 @@ class StyleGAN():
     def train_on_batch_G(self):
         with tf.GradientTape() as tape:
             logits = self.Stacked_model([self.z,self.noise], training = True)
-            loss_value = WGAN_loss_G(logits)
+            loss_value = WGAN_Generator_Loss(y_pred = logits)
         grads = tape.gradient(loss_value, self.FG.trainable_weights)
 
         self.optimizer_G.apply_gradients(zip(grads, self.FG.trainable_weights))
@@ -220,7 +220,7 @@ class StyleGAN():
     def train_on_batch_D(self):
         with tf.GradientTape() as tape:
             self.fakes = self.FG([self.z,self.noise],training = True)
-            loss_value = WGAN_loss_D(self)
+            loss_value = WGAN_Disciminator_loss(Discriminator = self.Discriminator, fakes = self.fakes, reals = self.reals)
         grads = tape.gradient(loss_value, self.Discriminator.trainable_weights)
 
         self.optimizer_D.apply_gradients(zip(grads, self.Discriminator.trainable_weights))

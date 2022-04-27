@@ -1,4 +1,3 @@
-import numpy as np
 import tensorflow as tf
 
 def gradient_penalty(Discriminator, reals, fakes):
@@ -16,11 +15,13 @@ def gradient_penalty(Discriminator, reals, fakes):
         grad = tf.reduce_mean((grad - 1) ** 2)
     return grad
 
-def WGAN_loss_D(obj):
-    ans = tf.reduce_mean(obj.Discriminator(obj.reals, training = True)) - tf.reduce_mean(obj.Discriminator(obj.fakes, training = True))
-    ans = ans - obj.lamda * gradient_penalty(obj.Discriminator, obj.reals, obj.fakes)
-    return -ans
+def WGAN_Disciminator_loss(Discriminator, reals, fakes):
+    lamda = 10
+    ans = tf.reduce_mean(Discriminator(reals, training = True)) - tf.reduce_mean(Discriminator(fakes, training = True))
+    ans = ans - lamda * gradient_penalty(Discriminator, reals, fakes)
+    return -ans 
 
-def WGAN_loss_G(y_pred):
+#y_true is dummy values, not used in calculation
+def WGAN_Generator_Loss(y_pred, y_true = None):
     ans = tf.reduce_mean(y_pred)
     return -ans
