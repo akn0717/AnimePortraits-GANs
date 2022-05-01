@@ -3,13 +3,13 @@ import pickle
 import h5py
 import numpy as np
 import tensorflow as tf
-from models.losses import WGAN_Generator_loss, WGAN_Disciminator_loss
+from models.losses import WGAN_Generator_loss, WGAN_Disciminator_loss, LS_loss
 
 def save_checkpoint(model, path):
     model.save_weights(path)
 
 class Trainer():
-    def __init__(self, lr):
+    def __init__(self, lr, loss = 0):
         self.z_visual = None
         self.noise_visual = None
         self.BatchGen = None
@@ -19,6 +19,7 @@ class Trainer():
         self.D = None
         self.optimizer_D = tf.keras.optimizers.Adam(lr=lr, beta_1=0.0, beta_2=0.9)
         self.optimizer_G = tf.keras.optimizers.Adam(lr=lr, beta_1=0.0, beta_2=0.9)
+        self.loss = loss
 
     def get_preview(self, FG, num_images, random = True):
         if (random):
@@ -45,16 +46,30 @@ class Trainer():
     def generator_step(self, x):
         with tf.GradientTape() as tape:
             logits = self.D(self.FG(x, training = True), training = True)
-            loss_value = WGAN_Generator_loss(y_pred = logits)
-        grads = tape.gradient(loss_value, self.FG.trainable_weights)
+            if (self.loss == 0):
+                y_ones = np.ones((self.BatchGen.batch_size, 1))
+                loss_value = LS_loss(y_ones, logits)
+            else:
+                loss_value = WGAN_Generator_loss(logits)
+            
+            grads = tape.gradient(loss_value, self.FG.trainable_weights)
+
         self.optimizer_G.apply_gradients(zip(grads, self.FG.trainable_weights))
         return float(loss_value)
 
     def discriminator_step(self, x):
         with tf.GradientTape() as tape:
             fakes = self.FG([x[1],x[2]],training = True)
-            loss_value = WGAN_Disciminator_loss(Discriminator = self.D, fakes = fakes, reals = x[0])
-        grads = tape.gradient(loss_value, self.D.trainable_weights)
+            
+            if (self.loss == 0):
+                y_pred = self.D(np.concatenate([fakes, x[0]], axis = 0), training = True)
+                y_ones = np.ones((self.BatchGen.batch_size,1))
+                y_zeros = np.zeros((self.BatchGen.batch_size, 1))
+                y_true = np.concatenate([y_zeros, y_ones], axis = 0)
+                loss_value = LS_loss(y_true, y_pred)
+            else:
+                loss_value = WGAN_Disciminator_loss(self.D, x[0], fakes)
+            grads = tape.gradient(loss_value, self.D.trainable_weights)
 
         self.optimizer_D.apply_gradients(zip(grads, self.D.trainable_weights))
         return float(loss_value)

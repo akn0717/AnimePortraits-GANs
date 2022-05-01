@@ -35,7 +35,7 @@ def train(args):
     print("Data size: ",data_size," samples")
 
     #Prepare models
-    trainer = Trainer(lr = lr)
+    trainer = Trainer(lr = lr, loss = args.loss_fn)
     trainer.set_BatchGen(ImageGen)
 
     F, G = get_generator(configs)
@@ -122,6 +122,7 @@ if __name__ == "__main__":
 
     parser.add_argument('-b', '--batch-size', dest = 'batch_size', type = int, default = 4)
     parser.add_argument('-ls', '--latent-size', dest = 'latent_size', type = int, default = 512)
+    parser.add_argument('-lf', '--loss-function', help = 'loss function type: 0 for LSGAN loss, 1 for WGAN-GP loss (default: 0)',dest = 'loss_fn', type = int, default = 0)
 
 
     parser.add_argument('-c', '--checkpoint-iteration', dest = 'cp_iter', type = int, default = 100)
