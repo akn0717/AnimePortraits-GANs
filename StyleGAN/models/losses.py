@@ -1,12 +1,11 @@
-import numpy as np
 import tensorflow as tf
 
 def gradient_penalty(Discriminator, reals, fakes):
     batch_size = len(reals)
-
+    H, W = len(reals[0]), len(reals[0][0])
     with tf.GradientTape() as tape:
         epsilon = tf.random.uniform(shape = (batch_size,1,1,1))
-        epsilon = tf.tile(epsilon, [1,64,64,3])
+        epsilon = tf.tile(epsilon, [1,H,W,3])
         tf_reals = tf.Variable(reals, dtype = float)
         tf_fakes = tf.Variable(fakes)
         inter_images = tf.multiply(tf_reals,epsilon) + tf.multiply(tf_fakes,1-epsilon)
@@ -16,11 +15,13 @@ def gradient_penalty(Discriminator, reals, fakes):
         grad = tf.reduce_mean((grad - 1) ** 2)
     return grad
 
-def WGAN_loss_D(obj):
-    ans = tf.reduce_mean(obj.Discriminator(obj.reals, training = True)) - tf.reduce_mean(obj.Discriminator(obj.fakes, training = True))
-    ans = ans - obj.lamda * gradient_penalty(obj.Discriminator, obj.reals, obj.fakes)
-    return -ans
+def WGAN_Disciminator_loss(Discriminator, reals, fakes):
+    lamda = 10
+    ans = tf.reduce_mean(Discriminator(reals, training = True)) - tf.reduce_mean(Discriminator(fakes, training = True))
+    ans = ans - lamda * gradient_penalty(Discriminator, reals, fakes)
+    return -ans 
 
-def WGAN_loss_G(y_pred):
+#y_true is dummy values, not used in calculation
+def WGAN_Generator_loss(y_pred, y_true = None):
     ans = tf.reduce_mean(y_pred)
     return -ans

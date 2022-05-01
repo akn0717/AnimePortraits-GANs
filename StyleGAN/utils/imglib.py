@@ -1,7 +1,5 @@
-from keras.preprocessing import image
 import os
 import numpy as np
-import h5py
 import cv2
 
 def h5_load_image(h5, key):
@@ -34,3 +32,9 @@ def load_sampling(data_dir,name_files, W, H):
         img_load = cv2.resize(img_load, (H,W))
         img_list.append(img_load)
     return img_list
+
+def standardize_image(imgs):
+    return (np.array(imgs) / 127.5) - 1
+
+def destandardize_image(imgs):
+    return (np.array(imgs) + 1) *127.5

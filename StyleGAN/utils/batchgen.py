@@ -6,7 +6,7 @@ import cv2
 import numpy as np
 from PIL import Image
 
-from utils.imglib import load_sampling
+from utils.imglib import load_sampling, standardize_image
 
 def load_bfile(h5_file, name):
     img = np.asarray(Image.open(io.BytesIO(np.array(h5_file[name]))))
@@ -36,20 +36,32 @@ class BatchGen():
         self.latent_size = latent_size
         return
     
-    def next_batch_Generator(self):
-        z = np.random.normal(size = (self.batch_size, self.latent_size))
-        noise = np.random.normal(size = (self.batch_size, self.img_size[0], self.img_size[1],1))
+    def next_batch_Generator(self, batch_size = None, img_size = None):
+        if batch_size is None:
+            batch_size = self.batch_size
+        
+        if img_size is None:
+            img_size = self.img_size
+
+        z = np.random.normal(size = (batch_size, self.latent_size))
+        noise = np.random.normal(size = (batch_size, img_size[0], img_size[1],1))
         return z, noise
 
-    def next_batch_Discriminator(self):
-        real_samples = random.sample(self.keys, self.batch_size)
+    def next_batch_Discriminator(self, batch_size = None, img_size = None):
+        if batch_size is None:
+            batch_size = self.batch_size
+        
+        if img_size is None:
+            img_size = self.img_size
+
+        real_samples = random.sample(self.keys, batch_size)
         if (self.h5_file != None):
-            real_samples = np.array(load_bfiles(self.h5_file, real_samples)) / 127.5 - 1
+            real_samples = standardize_image(load_bfiles(self.h5_file, real_samples))
         else:
-            real_samples = np.array(load_sampling(self.path, real_samples, H = self.img_size[0], W = self.img_size[1]))
+            real_samples = np.array(load_sampling(self.path, real_samples, H = img_size[0], W = img_size[1]))
             
-        z = np.random.normal(size = (self.batch_size, self.latent_size))
-        noise = np.random.normal(size = (self.batch_size, self.img_size[0], self.img_size[1],1))
+        z = np.random.normal(size = (batch_size, self.latent_size))
+        noise = np.random.normal(size = (batch_size, img_size[0], img_size[1],1))
 
         return real_samples, z, noise
 
