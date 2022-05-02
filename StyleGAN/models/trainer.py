@@ -3,7 +3,7 @@ import pickle
 import h5py
 import numpy as np
 import tensorflow as tf
-from models.losses import WGAN_Generator_loss, WGAN_Disciminator_loss, LS_loss
+from models.losses import WGAN_Generator_loss, WGAN_Disciminator_loss
 
 def save_checkpoint(model, path):
     model.save_weights(path)
@@ -46,11 +46,7 @@ class Trainer():
     def generator_step(self, x):
         with tf.GradientTape() as tape:
             logits = self.D(self.FG(x, training = True), training = True)
-            if (self.loss == 0):
-                y_ones = np.ones((self.BatchGen.batch_size, 1))
-                loss_value = LS_loss(y_ones, logits)
-            else:
-                loss_value = WGAN_Generator_loss(logits)
+            loss_value = WGAN_Generator_loss(logits)
             
             grads = tape.gradient(loss_value, self.FG.trainable_weights)
 
@@ -60,15 +56,8 @@ class Trainer():
     def discriminator_step(self, x):
         with tf.GradientTape() as tape:
             fakes = self.FG([x[1],x[2]],training = True)
-            
-            if (self.loss == 0):
-                y_pred = self.D(np.concatenate([fakes, x[0]], axis = 0), training = True)
-                y_ones = np.ones((self.BatchGen.batch_size,1))
-                y_zeros = np.zeros((self.BatchGen.batch_size, 1))
-                y_true = np.concatenate([y_zeros, y_ones], axis = 0)
-                loss_value = LS_loss(y_true, y_pred)
-            else:
-                loss_value = WGAN_Disciminator_loss(self.D, x[0], fakes)
+            loss_value = WGAN_Disciminator_loss(self.D, x[0], fakes)
+
             grads = tape.gradient(loss_value, self.D.trainable_weights)
 
         self.optimizer_D.apply_gradients(zip(grads, self.D.trainable_weights))
