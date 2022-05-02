@@ -16,7 +16,8 @@ def train(args):
 
     #Hyperparameters
     lr = 0.0001
-    n_critic = 5
+    n_critic = 5 if (args.loss_fn == 1) else 1
+    print(n_critic)
     num_images = 25
 
     #Prepare configs
