@@ -60,7 +60,7 @@ def mapping_network(latent_size = 512, num_layers = 8):
     return m
 
 def synthesis_network(configs):
-    Feature_maps = [512, 512, 256, 128, 64, 32, 16]
+    Feature_maps = [512, 512, 512, 512, 256, 128, 64]
     
     hidden = Constant_block(configs['batch_size'])
     w = Input(shape = (configs['latent_size'],))

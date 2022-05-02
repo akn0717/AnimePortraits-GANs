@@ -22,7 +22,7 @@ def D_block(x, filter, idx):
     return x_out
 
 def get_discriminator():
-    Feature_maps = [16, 32, 64, 128, 256, 512]
+    Feature_maps = [64, 128, 256, 512, 512, 512]
 
     x = Input(shape = (256, 256, 3))
     hidden = x

@@ -3,7 +3,7 @@ import pickle
 import h5py
 import numpy as np
 import tensorflow as tf
-from models.losses import WGAN_Generator_loss, WGAN_Disciminator_loss
+from models.losses import WGAN_Generator_loss, WGAN_Disciminator_loss   
 
 def save_checkpoint(model, path):
     model.save_weights(path)
