@@ -1,9 +1,6 @@
 import argparse
-from json import JSONEncoder
 import json
 import os
-from tkinter import Image
-from matplotlib.font_manager import json_dump
 from models.discriminator import get_discriminator
 from models.generator import get_FG, get_generator
 from models.trainer import Trainer, save_checkpoint
@@ -12,6 +9,7 @@ from utils.batchgen import BatchGen
 from utils.imglib import destandardize_image
 from utils.plotlib import display_img, plot_multiple_vectors
 
+import time
 def train(args):
 
     #Hyperparameters
@@ -59,9 +57,9 @@ def train(args):
         result = destandardize_image(trainer.get_preview(FG, num_images, random = False))
         display_img(list(result), save_path = os.path.join(args.cp_src,"Preview_0.png"))
 
-        
+    run_time = 0
     while (True):
-        
+        start_time = time.time()
         for _ in range(n_critic):
 			##Train Discriminator
             reals, z, noise = ImageGen.next_batch_Discriminator()
@@ -75,12 +73,13 @@ def train(args):
         trainer.g_loss.append(G_loss)
 
         iterations = trainer.get_num_iteration()
-        
+        run_time += (time.time() - start_time)
         if iterations%int(args.log_iter)==0:
-            print('epoch: ', (iterations//(data_size//args.batch_size))+1,' iterations: ',iterations,' loss D: ',D_loss,' loss G: ',G_loss)
+            print('epoch: ', (iterations//(data_size//args.batch_size))+1,' iterations: ',iterations,' loss D: ',D_loss,' loss G: ',G_loss,' [',1.*run_time/int(args.log_iter),'ms]',sep = '')
             result = destandardize_image(trainer.get_preview(FG, 9))
             display_img(list(result), save_path = os.path.join(args.cp_src,'Preview.jpg'))
             plot_multiple_vectors([trainer.d_loss,trainer.g_loss], title = 'loss', xlabel='iterations', legends = ['Discriminator Loss', 'Generator Loss'], save_path = os.path.join(args.cp_src,'loss.png'))
+            run_time = 0
 
         if iterations%int(args.cp_iter)==0:
             print("Saving...", end = '')
