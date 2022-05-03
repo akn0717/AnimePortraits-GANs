@@ -21,7 +21,7 @@ def A_block(w, filter):
 def B_block(noise, filter, size):
     size = ((0,noise.shape[1] - size),(0,noise.shape[1] - size))
     out = Cropping2D(cropping = size) (noise)
-    out = Conv2D(1, (1,1), padding = 'same') (out)
+    out = Conv2D(filter, (1,1), padding = 'same') (out)
     return out
 
 def G_block(x, w, noise_inp, filter, idx):
@@ -31,14 +31,14 @@ def G_block(x, w, noise_inp, filter, idx):
         hidden = UpSampling2D(interpolation = 'bilinear') (hidden)
         hidden = Conv2D(filter,(3,3),padding = 'same') (hidden)
 
-    y_s, y_b = A_block(w, filter+1)
+    y_s, y_b = A_block(w, filter)
     noise = B_block(noise_inp, filter, hidden.shape[1])
     hidden = Add() ([hidden,noise])
     hidden = AdaIN() ([hidden, y_b, y_s])
     hidden = LeakyReLU(0.2) (hidden)
 
     hidden = Conv2D(filter,(3,3),padding = 'same') (hidden)
-    y_s, y_b = A_block(w, filter+1)
+    y_s, y_b = A_block(w, filter)
     noise = B_block(noise_inp, filter, hidden.shape[1])
     hidden = Add() ([hidden,noise])
     hidden = AdaIN() ([hidden, y_b, y_s])
