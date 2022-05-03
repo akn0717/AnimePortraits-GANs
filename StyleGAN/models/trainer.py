@@ -1,5 +1,6 @@
 import os
 import pickle
+import cv2
 import h5py
 import numpy as np
 import tensorflow as tf
@@ -31,7 +32,7 @@ class Trainer():
         for idx in range(num_images):
             z = np.reshape(zs[idx], (1, self.BatchGen.latent_size))
             noise = np.reshape(noises[idx], (1, self.BatchGen.img_size[0], self.BatchGen.img_size[1], 1))
-            preview_imgs.append(FG.predict([z,noise])[0])
+            preview_imgs.append(cv2.cvt(FG.predict([z,noise])[0], cv2.COLOR_RGB2BGR))
         return preview_imgs
 
     def get_num_iteration(self):
