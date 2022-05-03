@@ -33,14 +33,14 @@ def G_block(x, w, noise_inp, filter, idx):
 
     y_s, y_b = A_block(w, filter+1)
     noise = B_block(noise_inp, filter, hidden.shape[1])
-    hidden = Concatenate(axis = 3) ([hidden,noise])
+    hidden = Add() ([hidden,noise])
     hidden = AdaIN() ([hidden, y_b, y_s])
     hidden = LeakyReLU(0.2) (hidden)
 
     hidden = Conv2D(filter,(3,3),padding = 'same') (hidden)
     y_s, y_b = A_block(w, filter+1)
     noise = B_block(noise_inp, filter, hidden.shape[1])
-    hidden = Concatenate(axis = 3) ([hidden,noise])
+    hidden = Add() ([hidden,noise])
     hidden = AdaIN() ([hidden, y_b, y_s])
     x_out = LeakyReLU(0.2) (hidden)
 
