@@ -10,7 +10,6 @@ from utils.imglib import load_sampling, standardize_image
 
 def load_bfile(h5_file, name):
     img = np.asarray(Image.open(io.BytesIO(np.array(h5_file[name]))))
-    img = cv2.cvtColor(cv2.resize(img, (256,256)), cv2.COLOR_RGB2BGR)
     return img
 
 def load_bfiles(h5_file, names):

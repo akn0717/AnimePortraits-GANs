@@ -1,6 +1,8 @@
 import argparse
 import json
 import os
+
+import cv2
 from models.discriminator import get_discriminator
 from models.generator import get_FG, get_generator
 from models.trainer import Trainer, save_checkpoint
@@ -76,7 +78,7 @@ def train(args):
         run_time += (time.time() - start_time)
         if iterations%int(args.log_iter)==0:
             print('epoch: ', (iterations//(data_size//args.batch_size))+1,' iterations: ',iterations,' loss D: ',D_loss,' loss G: ',G_loss,' [',1.*run_time/int(args.log_iter),'ms]',sep = '')
-            result = destandardize_image(trainer.get_preview(FG, 9))
+            result = cv2.cvt(destandardize_image(trainer.get_preview(FG, 9)), cv2.COLOR_RGB2BGR)
             display_img(list(result), save_path = os.path.join(args.cp_src,'Preview.jpg'))
             plot_multiple_vectors([trainer.d_loss,trainer.g_loss], title = 'loss', xlabel='iterations', legends = ['Discriminator Loss', 'Generator Loss'], save_path = os.path.join(args.cp_src,'loss.png'))
             run_time = 0

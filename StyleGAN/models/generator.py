@@ -1,13 +1,13 @@
 import os
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.layers import Dense, Reshape, Cropping2D, Conv2D, UpSampling2D, Add, LeakyReLU, Input, Activation
+from tensorflow.keras.layers import Dense, Reshape, Cropping2D, Conv2D, UpSampling2D, Add, LeakyReLU, Input, Activation, Concatenate
 from tensorflow.keras.models import Model
 from models.layer_collection import AdaIN, Bias_Layer
 import h5py
 
-def Constant_block(batch_size):
-    x = tf.constant(value = np.zeros((batch_size, 4, 4, 512)), shape = (batch_size, 4, 4, 512))
+def Constant_block(shape):
+    x = tf.zeros(shape = (shape[0], 4, 4, 512))
     x_out = Bias_Layer() (x)
     return x_out
 
@@ -21,7 +21,7 @@ def A_block(w, filter):
 def B_block(noise, filter, size):
     size = ((0,noise.shape[1] - size),(0,noise.shape[1] - size))
     out = Cropping2D(cropping = size) (noise)
-    out = Conv2D(filter, (1,1), padding = 'same') (out)
+    out = Conv2D(1, (1,1), padding = 'same') (out)
     return out
 
 def G_block(x, w, noise_inp, filter, idx):
@@ -31,16 +31,16 @@ def G_block(x, w, noise_inp, filter, idx):
         hidden = UpSampling2D(interpolation = 'bilinear') (hidden)
         hidden = Conv2D(filter,(3,3),padding = 'same') (hidden)
 
-    y_s, y_b = A_block(w, filter)
+    y_s, y_b = A_block(w, filter+1)
     noise = B_block(noise_inp, filter, hidden.shape[1])
-    hidden = Add() ([hidden,noise])
+    hidden = Concatenate(axis = 3) ([hidden,noise])
     hidden = AdaIN() ([hidden, y_b, y_s])
     hidden = LeakyReLU(0.2) (hidden)
 
     hidden = Conv2D(filter,(3,3),padding = 'same') (hidden)
-    y_s, y_b = A_block(w, filter)
+    y_s, y_b = A_block(w, filter+1)
     noise = B_block(noise_inp, filter, hidden.shape[1])
-    hidden = Add() ([hidden,noise])
+    hidden = Concatenate(axis = 3) ([hidden,noise])
     hidden = AdaIN() ([hidden, y_b, y_s])
     x_out = LeakyReLU(0.2) (hidden)
 
@@ -62,8 +62,9 @@ def mapping_network(latent_size = 512, num_layers = 8):
 def synthesis_network(configs):
     Feature_maps = [512, 512, 512, 512, 256, 128, 64]
     
-    hidden = Constant_block(configs['batch_size'])
     w = Input(shape = (configs['latent_size'],))
+    w_shape = tf.shape(w)
+    hidden = Constant_block(w_shape)
     noise_inp = Input(shape = (256, 256, 1))
     x_out = []
 
