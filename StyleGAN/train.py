@@ -17,7 +17,6 @@ def train(args):
     n_critic = 5
     print(n_critic)
     num_images = 25
-
     #Prepare configs
     configs =  {'iterations': 0,
                 'batch_size': int(args.batch_size),
@@ -55,7 +54,7 @@ def train(args):
     else:
         trainer.init_visualization(num_images)
         result = destandardize_image(trainer.get_preview(FG, num_images, random = False))
-        display_img(list(result), save_path = os.path.join(args.cp_src,"Preview_0.png"))
+        display_img(list(result), save_path = os.path.join(args.cp_src, "Preview_0.png"))
 
     run_time = 0
     while (True):
@@ -63,11 +62,11 @@ def train(args):
         for _ in range(n_critic):
 			##Train Discriminator
             reals, z, noise = ImageGen.next_batch_Discriminator()
-            D_loss = trainer.discriminator_step([reals, z, noise])
+            D_loss = trainer.discriminator_step([reals, z])
         
         ##Train Generator
         z, noise = ImageGen.next_batch_Generator()
-        G_loss = trainer.generator_step([z, noise])
+        G_loss = trainer.generator_step(z)
 
         trainer.d_loss.append(D_loss)
         trainer.g_loss.append(G_loss)

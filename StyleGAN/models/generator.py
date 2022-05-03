@@ -1,7 +1,7 @@
 import os
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.layers import Dense, Reshape, Cropping2D, Conv2D, UpSampling2D, Add, LeakyReLU, Input, Activation
+from tensorflow.keras.layers import Dense, Reshape, Cropping2D, Conv2D, UpSampling2D, Add, LeakyReLU, Input, Activation, Concatenate
 from tensorflow.keras.models import Model
 from models.layer_collection import AdaIN, Bias_Layer
 import h5py
@@ -18,29 +18,30 @@ def A_block(w, filter):
     y_b = Reshape((1,1,filter))(y_b)
     return y_s, y_b
 
-def B_block(noise, filter, size):
-    size = ((0,noise.shape[1] - size),(0,noise.shape[1] - size))
-    out = Cropping2D(cropping = size) (noise)
-    out = Conv2D(filter, (1,1), padding = 'same') (out)
-    return out
+def B_block(x):
+    x_out = Conv2D(1, (1,1), padding = 'same') (x)
+    return x_out
 
-def G_block(x, w, noise_inp, filter, idx):
+def G_block(x, w, filter, idx):
 
     hidden = x
     if idx != 0:
         hidden = UpSampling2D(interpolation = 'bilinear') (hidden)
         hidden = Conv2D(filter,(3,3),padding = 'same') (hidden)
 
-    y_s, y_b = A_block(w, filter)
-    noise = B_block(noise_inp, filter, hidden.shape[1])
-    hidden = Add() ([hidden,noise])
+    hidden_shape = tf.shape(hidden)
+    noise = tf.random.normal((hidden_shape[0], hidden_shape[1], hidden_shape[2], 1))
+
+    y_s, y_b = A_block(w, filter+1)
+    B_noise = B_block(noise)
+    hidden = Concatenate(axis = 3) ([hidden, B_noise])
     hidden = AdaIN() ([hidden, y_b, y_s])
     hidden = LeakyReLU(0.2) (hidden)
 
     hidden = Conv2D(filter,(3,3),padding = 'same') (hidden)
-    y_s, y_b = A_block(w, filter)
-    noise = B_block(noise_inp, filter, hidden.shape[1])
-    hidden = Add() ([hidden,noise])
+    y_s, y_b = A_block(w, filter+1)
+    B_noise = B_block(noise)
+    hidden = Concatenate(axis = 3) ([hidden, B_noise])
     hidden = AdaIN() ([hidden, y_b, y_s])
     x_out = LeakyReLU(0.2) (hidden)
 
@@ -61,19 +62,19 @@ def mapping_network(latent_size = 512, num_layers = 8):
 
 def synthesis_network(configs):
     Feature_maps = [512, 512, 512, 512, 256, 128, 64]
-    
+    n_feature_maps = len(Feature_maps)
     hidden = Constant_block(configs['batch_size'])
     w = Input(shape = (configs['latent_size'],))
-    noise_inp = Input(shape = (256, 256, 1))
+
     x_out = []
 
     for idx in range(len(Feature_maps)):
-        hidden, rgb = G_block(hidden, w, noise_inp, Feature_maps[idx], idx)
+        hidden, rgb = G_block(hidden, w, Feature_maps[idx], idx)
         x_out.append(rgb)
 
     x_out = Add() (x_out)
     x_out = Activation('tanh') (x_out)
-    model = Model([w,noise_inp],x_out)
+    model = Model(w,x_out)
     return model
 
 def get_generator(configs):
@@ -87,9 +88,8 @@ def get_FG(configs, F, G):
     latent_size = configs['latent_size']
 
     z = Input(shape = (latent_size,))
-    noise_inp = Input(shape = (H,W,1))
     
-    m = Model([z,noise_inp], G([F(z),noise_inp]))
+    m = Model(z, G(F(z)))
     return m
 
 

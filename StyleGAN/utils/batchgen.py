@@ -10,7 +10,7 @@ from utils.imglib import load_sampling, standardize_image
 
 def load_bfile(h5_file, name):
     img = np.asarray(Image.open(io.BytesIO(np.array(h5_file[name]))))
-    img = cv2.cvtColor(cv2.resize(img, (256,256)), cv2.COLOR_RGB2BGR)
+    img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
     return img
 
 def load_bfiles(h5_file, names):
@@ -36,7 +36,7 @@ class BatchGen():
         self.latent_size = latent_size
         return
     
-    def next_batch_Generator(self, batch_size = None, img_size = None):
+    def next_batch_Generator(self, num_g_blocks = 7, batch_size = None, img_size = None):
         if batch_size is None:
             batch_size = self.batch_size
         
@@ -44,10 +44,10 @@ class BatchGen():
             img_size = self.img_size
 
         z = np.random.normal(size = (batch_size, self.latent_size))
-        noise = np.random.normal(size = (batch_size, img_size[0], img_size[1],1))
+        noise = np.random.normal(size = (batch_size, num_g_blocks, img_size[0], img_size[1]))
         return z, noise
 
-    def next_batch_Discriminator(self, batch_size = None, img_size = None):
+    def next_batch_Discriminator(self, num_g_blocks = 7, batch_size = None, img_size = None):
         if batch_size is None:
             batch_size = self.batch_size
         
@@ -61,7 +61,7 @@ class BatchGen():
             real_samples = np.array(load_sampling(self.path, real_samples, H = img_size[0], W = img_size[1]))
             
         z = np.random.normal(size = (batch_size, self.latent_size))
-        noise = np.random.normal(size = (batch_size, img_size[0], img_size[1],1))
+        noise = np.random.normal(size = (batch_size, num_g_blocks, img_size[0], img_size[1]))
 
         return real_samples, z, noise
 

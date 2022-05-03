@@ -30,8 +30,7 @@ class Trainer():
         preview_imgs = []
         for idx in range(num_images):
             z = np.reshape(zs[idx], (1, self.BatchGen.latent_size))
-            noise = np.reshape(noises[idx], (1, self.BatchGen.img_size[0], self.BatchGen.img_size[1], 1))
-            preview_imgs.append(FG.predict([z,noise])[0])
+            preview_imgs.append(FG.predict(z)[0])
         return preview_imgs
 
     def get_num_iteration(self):
@@ -55,7 +54,7 @@ class Trainer():
 
     def discriminator_step(self, x):
         with tf.GradientTape() as tape:
-            fakes = self.FG([x[1],x[2]],training = True)
+            fakes = self.FG(x[1],training = True)
             loss_value = WGAN_Disciminator_loss(self.D, x[0], fakes)
 
             grads = tape.gradient(loss_value, self.D.trainable_weights)
@@ -71,12 +70,12 @@ class Trainer():
             self.d_loss = list(np.array(f['d_loss']))
             self.g_loss = list(np.array(f['g_loss']))
 
-    def load_optimizers(self, path, FG, D):
+    def load_optimizers(self, path):
         z, noise = self.BatchGen.next_batch_Generator()
-        self.generator_step([z, noise])
+        self.generator_step(z)
 
         reals, z, noise = self.BatchGen.next_batch_Discriminator()
-        self.discriminator_step([reals, z, noise])
+        self.discriminator_step([reals, z])
         
         with open(os.path.join(path, "Optimizer_D.pkl"),"rb") as f:
             Optimizer_weights = pickle.load(f)
