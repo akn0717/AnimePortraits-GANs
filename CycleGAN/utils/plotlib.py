@@ -28,7 +28,7 @@ def display_img(img_list, save_path = None ,show = None):
     cnt = 0
     vertical = None
     for i in range(size):
-        temp = img_list[cnt]
+        temp = cv2.cvtColor(img_list[cnt],cv2.COLOR_RGB2BGR)
         cnt += 1
         for _ in range(size-1):   
             temp = np.hstack((temp,cv2.cvtColor(img_list[cnt],cv2.COLOR_RGB2BGR)))

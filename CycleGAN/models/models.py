@@ -11,7 +11,7 @@ def G_step(G, GG, D, optimizer, x):
         generated = G(x, training = True)
         logits = D(generated, training = True)
         y_true = np.ones(shape = (x.shape[0],1))
-        loss = 0.1 * consistency_loss(GG, x, generated) + 0.9 * GAN_loss(y_true, logits)
+        loss = GAN_loss(y_true, logits) + 10 * consistency_loss(GG, x, generated)
         grads = tape.gradient(loss, G.trainable_weights)
     optimizer.apply_gradients(zip(grads, G.trainable_weights))
     return float(loss)
@@ -37,7 +37,7 @@ def US_ConvBlock(num_filter, x):
     return out
 
 def get_discriminator(H = 64, W = 64, C = 3):
-    num_filters = [16, 32, 64, 128]
+    num_filters = [64, 128, 256, 512]
     x = Input(shape = (H, W, C))
 
     hidden = Conv2D(num_filters[0], (1,1), padding = 'same', activation = LeakyReLU(0.2)) (x)
@@ -53,7 +53,7 @@ def get_unetgenerator(H, W, C):
     pass
 
 def get_generator(H = 64, W = 64, C = 3):
-    num_filters = [16, 32, 64, 128]
+    num_filters = [64, 128, 256, 512]
     x = Input((H, W, C))
     hidden = Conv2D(num_filters[0], (1,1), padding = 'same') (x)
 
