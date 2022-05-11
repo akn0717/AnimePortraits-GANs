@@ -38,3 +38,12 @@ def standardize_image(imgs):
 
 def destandardize_image(imgs):
     return np.array((np.array(imgs) + 1) * 127.5, dtype = np.int)
+
+def rand_crop(img, crop_shape):
+    img = np.array(img)
+    H, W = img.shape[0], img.shape[1]
+
+    x = np.random.randint(0, H-crop_shape[0] + 1)
+    y = np.random.randint(0, W-crop_shape[1] + 1)
+
+    return img[x:x+crop_shape[0], y:y+crop_shape[1]]
