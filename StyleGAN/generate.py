@@ -33,14 +33,15 @@ def generate(args):
     
     w_mean = get_w_mean(F)
     
-    generates = []
-    for _ in range(configs['batch_size']):
-        w = truncate(F(np.random.normal(size = (1, configs['latent_size']))), w_mean, args.psi)
-        noise = np.random.normal(size = (1, configs['image_height'], configs['image_width'], 1))
-        generates.append(cv2.cvtColor(destandardize_image(G([w, noise])[0]), cv2.COLOR_RGB2BGR))
-    
+    while True:
+        generates = []
+        for _ in range(configs['batch_size']):
+            w = truncate(F(np.random.normal(size = (1, configs['latent_size']))), w_mean, args.psi)
+            noise = np.random.normal(size = (1, configs['image_height'], configs['image_width'], 1))
+            generates.append(cv2.cvtColor(destandardize_image(G([w, noise])[0]), cv2.COLOR_RGB2BGR))
+        
 
-    display_img(generates, show = 0)
+        display_img(generates, show = 0)
     
 
 
@@ -57,7 +58,7 @@ if __name__ == "__main__":
     parser.add_argument('-cs', '--checkpoint-src', dest = 'cp_src', type = str, default = 'models/checkpoint')
 
     parser.add_argument('-m', '--mode', dest = 'mode', type = int, default = 0)
-    parser.add_argument('-psi', dest = 'psi', type = float, default = 0.7)
+    parser.add_argument('-psi', dest = 'psi', type = float, default = 0.6)
     args = parser.parse_args()
 
     if not(catch_exceptions(args)):
