@@ -12,18 +12,19 @@ def G_step(G, GG, D, optimizer, x, x_id):
     lambda_cycle = 10
     lambda_identity = 0.4
     with tf.GradientTape() as tape:
-        generated = G(x, training = True)
-        y_id = G(x_id, training = True)
-        logits = D(generated, training = True)
-        y_true = np.ones(shape = (x.shape[0],1))
-        loss = GAN_loss(y_true, logits) + lambda_cycle * consistency_loss(GG, x, generated) + lambda_identity * identity_loss(x_id, y_id)
+        generates = G(x, training = True)
+        logits = D(generates, training = True)
+        y_true = np.ones(shape = logits.shape)
+        loss = GAN_loss(y_true, logits) + lambda_cycle * consistency_loss(GG, x, generates) + lambda_identity * identity_loss(G, x_id, y_id)
         grads = tape.gradient(loss, G.trainable_weights)
     optimizer.apply_gradients(zip(grads, G.trainable_weights))
     return float(loss)
 
-def D_step(D, optimizer, x, y_true):
+def D_step(D, optimizer, reals, generates):
     with tf.GradientTape() as tape:
+        x = tf.concat([reals, generates], axis = 0)
         logits = D(x, training = True)
+        y_true = tf.concate([tf.ones(shape = reals.shape[0] + logits.shape[1:]), tf.zeros(shape = generates.shape[0] + logits.shape[1:])])
         loss = GAN_loss(y_true, logits)
         grads = tape.gradient(loss, D.trainable_weights)
     optimizer.apply_gradients(zip(grads, D.trainable_weights))

@@ -64,9 +64,8 @@ def train(args):
         B_generates = G_B.predict(A_samples)
         x_A = np.concatenate([A_samples, A_generates], axis = 0)
         x_B = np.concatenate([B_samples, B_generates], axis = 0)
-        y = np.concatenate([np.ones(shape = (batch_size//2, 1)), np.zeros(shape = (batch_size//2, 1))], axis = 0)
-        d_A_loss = D_step(D_A, optimizer_A, x_A, y)
-        d_B_loss = D_step(D_B, optimizer_B, x_B, y)
+        d_A_loss = D_step(D_A, optimizer_A, A_samples, A_generates)
+        d_B_loss = D_step(D_B, optimizer_B, B_samples, B_generates)
         
         # Train Generator
         A_samples = ImageGen.get_A_samples(batch_size, img_shape)
