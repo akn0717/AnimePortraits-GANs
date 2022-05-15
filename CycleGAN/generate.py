@@ -44,8 +44,10 @@ def rejoin(crop_list):
 
 def process(model, src_path, dst_path):
     A = [f for f in os.listdir(src_path) if os.path.isfile(os.path.join(src_path, f))]
+    if (len(A)==0):
+        return
     for idx in range(len(A)):
-        frame_crops, out_W, out_H = cropping(load_image(os.path.join(src_path, A[idx])), out_shape=(256, 256, 3))
+        frame_crops, out_W, out_H = cropping(load_image(os.path.join(src_path, A[idx])), out_shape=(512, 512, 3))
         A_pred = []
         for frame_idx in range(len(frame_crops)):
             x = np.reshape(frame_crops[frame_idx], (1, frame_crops[frame_idx].shape[0], frame_crops[frame_idx].shape[1], frame_crops[frame_idx].shape[2]))
