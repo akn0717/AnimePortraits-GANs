@@ -11,9 +11,9 @@ def h5_load_images(h5, keys):
         img_list.append(h5[key].value)
     return img_list
 
-def load_image(data_dir, W, H):
+def load_image(data_dir, W = None, H = None):
     img_load = cv2.imread(data_dir)
-
+    img_load = cv2.cvtColor(img_load, cv2.COLOR_BGR2RGB)
     return img_load
 
 def load_images(data_dir, W, H):
@@ -37,7 +37,7 @@ def standardize_image(imgs):
     return (np.array(imgs) / 127.5) - 1
 
 def destandardize_image(imgs):
-    return np.array((np.array(imgs) + 1) * 127.5, dtype = np.int)
+    return np.array((np.array(imgs) + 1) * 127.5, dtype = np.uint8)
 
 def rand_crop(img, crop_shape):
     img = np.array(img)

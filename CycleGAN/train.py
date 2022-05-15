@@ -26,7 +26,7 @@ def train(args):
     batch_size = int(args.batch_size)
 
     #Batch Sampler
-    ImageGen = BatchGen(args.A_src, args.B_src, (img_shape[0], img_shape[1]))
+    ImageGen = BatchGen(args.A_src, args.B_src)
     A_size, B_size = ImageGen.get_size()
     print("num images in A: ",A_size)
     print("num images in B: ",B_size)
@@ -115,6 +115,7 @@ def train(args):
 
         # if args.footstep!=0 and iterations%int(args.footstep)==0:
         #     result = destandardize_image(trainer.get_preview(FG, num_images, random = False))
+
         #     display_img(list(result), save_path = os.path.join(args.cp_src,"Preview_"+str(iterations)+".png"))
 
 if __name__ == "__main__":

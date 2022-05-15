@@ -2,7 +2,7 @@ import os
 import pickle
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.layers import Conv2D, Input, LeakyReLU, AveragePooling2D, UpSampling2D, Dense, Flatten, Add, Conv2DTranspose
+from tensorflow.keras.layers import Conv2D, Input, LeakyReLU, AveragePooling2D, UpSampling2D, Dense, Flatten, Add, Conv2DTranspose, InputLayer
 from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam
 
@@ -15,7 +15,7 @@ def G_step(G, GG, D, optimizer, x, x_id):
         generates = G(x, training = True)
         logits = D(generates, training = True)
         y_true = np.ones(shape = logits.shape)
-        loss = GAN_loss(y_true, logits) + lambda_cycle * consistency_loss(GG, x, generates) + lambda_identity * identity_loss(G, x_id, y_id)
+        loss = GAN_loss(y_true, logits) + lambda_cycle * consistency_loss(GG, x, generates) + lambda_identity * identity_loss(G, x_id)
         grads = tape.gradient(loss, G.trainable_weights)
     optimizer.apply_gradients(zip(grads, G.trainable_weights))
     return float(loss)
@@ -24,7 +24,7 @@ def D_step(D, optimizer, reals, generates):
     with tf.GradientTape() as tape:
         x = tf.concat([reals, generates], axis = 0)
         logits = D(x, training = True)
-        y_true = tf.concate([tf.ones(shape = reals.shape[0] + logits.shape[1:]), tf.zeros(shape = generates.shape[0] + logits.shape[1:])])
+        y_true = tf.concat([tf.ones(shape = reals.shape[0] + logits.shape[1:]), tf.zeros(shape = generates.shape[0] + logits.shape[1:])], axis = 0)
         loss = GAN_loss(y_true, logits)
         grads = tape.gradient(loss, D.trainable_weights)
     optimizer.apply_gradients(zip(grads, D.trainable_weights))
@@ -65,7 +65,7 @@ def get_unetgenerator(img_shape):
 def get_generator(img_shape):
     num_filters = [64, 128, 256]
 
-    x = Input(shape = img_shape)
+    x = Input(shape = [None, None, 3])
     hidden = Conv2D(64, (1,1), padding = 'same', activation = LeakyReLU(0.2)) (x)
     hidden = DS_ConvBlock(128, hidden)
     hidden = DS_ConvBlock(256, hidden)

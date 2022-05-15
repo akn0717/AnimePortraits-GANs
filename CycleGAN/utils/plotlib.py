@@ -21,17 +21,23 @@ def plot_multiple_vectors(v, figsize = (15,5), title = None, xlabel = None, ylab
     else:
         plt.close()
 
-def display_img(img_list, save_path = None ,show = None):
-    n = len(img_list)
-    img_list = list(np.array(img_list).astype(np.uint8))
-    size = int(np.sqrt(n))
+def display_img(img_list, shape = None, save_path = None ,show = None):
+    if (shape is None):
+        H = int(np.sqrt(len(img_list)))
+        W = int(np.sqrt(len(img_list)))
+    else:
+        H, W = shape
+
+    while (H * W < len(img_list)):
+        img_list.append(np.zeros(shape = np.array(img_list[0]).shape, dtype = np.int8))
+
     cnt = 0
     vertical = None
-    for i in range(size):
-        temp = cv2.cvtColor(img_list[cnt],cv2.COLOR_RGB2BGR)
+    for i in range(H):
+        temp = cv2.cvtColor(img_list[cnt], cv2.COLOR_RGB2BGR)
         cnt += 1
-        for _ in range(size-1):   
-            temp = np.hstack((temp,cv2.cvtColor(img_list[cnt],cv2.COLOR_RGB2BGR)))
+        for _ in range(W-1):
+            temp = np.hstack((temp,cv2.cvtColor(img_list[cnt], cv2.COLOR_RGB2BGR)))
             cnt += 1
         if i==0:
             vertical = temp.copy()

@@ -8,26 +8,21 @@ from PIL import Image
 
 from utils.imglib import load_sampling, standardize_image, rand_crop
 
-def load_bfile(h5_file, name, img_shape, resize = False, random_crop = True):
+def load_bfile(h5_file, name, img_shape):
     img = np.asarray(Image.open(io.BytesIO(np.array(h5_file[name]))))
-    if (img.shape[0]!=img_shape[0] or img.shape[1] != img_shape[1]):
-        if (resize):
-            img = cv2.resize(img, (img_shape[0], img_shape[1]))
-        if (random_crop):
-            img = rand_crop(img, img_shape)
+    img = rand_crop(img, (512,512))
+    img = cv2.resize(img, (img_shape[0], img_shape[1]))
     return img
 
-def load_bfiles(h5_file, names, img_shape, resize = False, random_crop = True):
+def load_bfiles(h5_file, names, img_shape):
     img = []
     for name in names:
-        img.append(load_bfile(h5_file, name, img_shape, resize = False, random_crop = True))
+        img.append(load_bfile(h5_file, name, img_shape))
     return img
 
 class BatchGen():
-    def __init__(self, path_A, path_B, img_size, resize = False, random_crop = True):
+    def __init__(self, path_A, path_B):
 
-        self.resize = resize
-        self.random_crop = random_crop
 
         self.path_A = path_A
         self.path_B = path_B
@@ -51,7 +46,7 @@ class BatchGen():
         A_key_samples = random.sample(self.A_keys, batch_size)
 
         if (self.A_file != None):
-            A_samples = load_bfiles(self.A_file, A_key_samples, img_shape, self.resize, self.random_crop)
+            A_samples = load_bfiles(self.A_file, A_key_samples, img_shape)
         else:
             A_samples = np.array(load_sampling(self.path_A, A_key_samples, H = img_shape[0], W = img_shape[1]))
 
@@ -63,7 +58,7 @@ class BatchGen():
         B_key_samples = random.sample(self.B_keys, batch_size)
 
         if (self.B_file != None):
-            B_samples = load_bfiles(self.B_file, B_key_samples, img_shape, self.resize, self.random_crop)
+            B_samples = load_bfiles(self.B_file, B_key_samples, img_shape)
         else:
             B_samples = np.array(load_sampling(self.path_B, B_key_samples, H = img_shape[0], W = img_shape[1]))
 
