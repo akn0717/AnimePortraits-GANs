@@ -16,9 +16,9 @@ def train(args):
 
     #Hyperparameters
     lr = 0.0001
-    n_critic = 5
+    n_critic = 5 if args.loss == 0 else 1
     print(n_critic)
-    num_images = 25
+    num_images = 100
 
     #Prepare configs
     configs =  {'iterations': 0,
@@ -36,7 +36,7 @@ def train(args):
     print("Data size: ",data_size," samples")
 
     #Prepare models
-    trainer = Trainer(lr = lr)
+    trainer = Trainer(lr = lr, loss_fn = args.loss)
     trainer.set_BatchGen(ImageGen)
 
     F, G = get_generator(configs)
@@ -47,9 +47,9 @@ def train(args):
     trainer.D = D
     FG.summary()
     D.summary()
-    
+
+
     if not(args.train_new):
-        trainer.load_optimizers(args.cp_src, FG, D)
         F.load_weights(os.path.join(args.cp_src,'mapping_weights.h5'))
         G.load_weights(os.path.join(args.cp_src,'generator_weights.h5'))
         D.load_weights(os.path.join(args.cp_src,'discriminator_weights.h5'))
@@ -60,6 +60,7 @@ def train(args):
         display_img(list(result), save_path = os.path.join(args.cp_src,"Preview_0.png"))
 
     run_time = 0
+    
     while (True):
         start_time = time.time()
         for _ in range(n_critic):
@@ -74,29 +75,26 @@ def train(args):
         trainer.d_loss.append(D_loss)
         trainer.g_loss.append(G_loss)
 
-        iterations = trainer.get_num_iteration()
         run_time += (time.time() - start_time)
-        if iterations%int(args.log_iter)==0:
-            print('epoch: ', (iterations//(data_size//args.batch_size))+1,' iterations: ',iterations,' loss D: ',D_loss,' loss G: ',G_loss,' [',1.*run_time/int(args.log_iter),'ms]',sep = '')
-            result = destandardize_image(trainer.get_preview(FG, 9))
+        if trainer.iterations%int(args.log_iter)==0:
+            print('epoch: ', (trainer.iterations//(data_size//args.batch_size))+1,' iterations: ',trainer.iterations, ' ', trainer.iterations*int(args.batch_size)//1000,'kimg',' loss D: ',D_loss,' loss G: ',G_loss,' [',1.*run_time/int(args.log_iter),'s]',sep = '')
+            result = destandardize_image(trainer.get_preview(FG, 25))
             display_img(list(result), save_path = os.path.join(args.cp_src,'Preview.jpg'))
             plot_multiple_vectors([trainer.d_loss,trainer.g_loss], title = 'loss', xlabel='iterations', legends = ['Discriminator Loss', 'Generator Loss'], save_path = os.path.join(args.cp_src,'loss.png'))
             run_time = 0
 
-        if iterations%int(args.cp_iter)==0:
+        if trainer.iterations%int(args.cp_iter)==0:
             print("Saving...", end = '')
-            trainer.save(args.cp_src)
+            configs['iterations'] = trainer.get_num_iteration()
+            trainer.save(args.cp_src, configs)
             save_checkpoint(F, os.path.join(args.cp_src, "mapping_weights.h5"))
             save_checkpoint(G, os.path.join(args.cp_src, "generator_weights.h5"))
             save_checkpoint(D, os.path.join(args.cp_src, "discriminator_weights.h5"))
-            configs['iterations'] = trainer.get_num_iteration()
-            with open(os.path.join(args.cp_src,"log.json"), "w") as f:
-                json.dump(configs, f)
             print("Done!")
 
-        if args.footstep!=0 and iterations%int(args.footstep)==0:
+        if args.footstep!=0 and trainer.iterations%int(args.footstep)==0:
             result = destandardize_image(trainer.get_preview(FG, num_images, random = False))
-            display_img(list(result), save_path = os.path.join(args.cp_src,"Preview_"+str(iterations)+".png"))
+            display_img(list(result), save_path = os.path.join(args.cp_src,"Preview_"+str(trainer.iterations)+".png"))
 
 def catch_exceptions(args):
     train_new = args.train_new
@@ -124,7 +122,7 @@ if __name__ == "__main__":
 
     parser.add_argument('-b', '--batch-size', dest = 'batch_size', type = int, default = 4)
     parser.add_argument('-ls', '--latent-size', dest = 'latent_size', type = int, default = 512)
-
+    parser.add_argument('-loss', '--loss-function', help = 'loss function: 0 for WGAN-GP, 1 for LSGAN (default: 0)', dest = 'loss', type = int, default = 0)
 
     parser.add_argument('-c', '--checkpoint-iteration', dest = 'cp_iter', type = int, default = 100)
     parser.add_argument('-cs', '--checkpoint-source', dest = 'cp_src', type = str, default = 'models/checkpoint')
@@ -136,3 +134,5 @@ if __name__ == "__main__":
 
     if not(catch_exceptions(args)):
         train(args)
+    else:
+        print("ERROR!!")
