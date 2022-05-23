@@ -25,3 +25,6 @@ def WGAN_Disciminator_loss(Discriminator, reals, fakes):
 def WGAN_Generator_loss(y_pred, y_true = None):
     ans = tf.reduce_mean(y_pred)
     return -ans
+
+def LSGAN_loss(y_true, y_pred):
+    return tf.reduce_mean(tf.square(y_true - y_pred))
