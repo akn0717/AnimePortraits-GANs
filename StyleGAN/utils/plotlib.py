@@ -38,6 +38,7 @@ def display_img(img_list, save_path = None ,show = None):
         else:
             vertical = np.vstack((vertical,temp.copy()))
     
+    vertical = cv2.resize(vertical, (1024, 1024))
     if show!=None:
         cv2.imshow('Preview', vertical)
         cv2.waitKey(show)
