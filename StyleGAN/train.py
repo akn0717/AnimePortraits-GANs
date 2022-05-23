@@ -1,6 +1,8 @@
 import argparse
+from genericpath import exists
 import json
 import os
+import shutil
 
 import cv2
 from models.discriminator import get_discriminator
@@ -10,15 +12,23 @@ from models.trainer import Trainer, save_checkpoint
 from utils.batchgen import BatchGen
 from utils.imglib import destandardize_image
 from utils.plotlib import display_img, plot_multiple_vectors
+from collections import deque 
 
 import time
+
+def sort_key(s):
+    num = -1
+    if (len(s.split('_'))>1):
+        num = int(s.split('_')[1])
+    return num
+
 def train(args):
 
     #Hyperparameters
     lr = 0.0001
     n_critic = 5 if args.loss == 0 else 1
     print(n_critic)
-    num_images = 100
+    num_images = 25
 
     #Prepare configs
     configs =  {'iterations': 0,
@@ -45,15 +55,22 @@ def train(args):
 
     trainer.FG = FG
     trainer.D = D
+    trainer.G = G
+    trainer.F = F
     FG.summary()
     D.summary()
 
+    dq = deque()
 
     if not(args.train_new):
-        F.load_weights(os.path.join(args.cp_src,'mapping_weights.h5'))
-        G.load_weights(os.path.join(args.cp_src,'generator_weights.h5'))
-        D.load_weights(os.path.join(args.cp_src,'discriminator_weights.h5'))
-        trainer.load(args.cp_src)
+        checkpoint_list = [f for f in os.listdir(args.cp_src) if len(f.split('_')) > 1 and f.split('_')[0] == 'checkpoint']
+        checkpoint_list.sort(key = sort_key)
+        dq = deque(checkpoint_list)
+        print("Loading ", dq[-1], "...",sep = "")
+        if (len(dq) >= 1):
+            trainer.load(os.path.join(args.cp_src, checkpoint_list[-1]))
+        else:
+            trainer.load(os.path.join(args.cp_src, 'checkpoint'))
     else:
         trainer.init_visualization(num_images)
         result = destandardize_image(trainer.get_preview(FG, num_images, random = False))
@@ -82,38 +99,25 @@ def train(args):
             display_img(list(result), save_path = os.path.join(args.cp_src,'Preview.jpg'))
             plot_multiple_vectors([trainer.d_loss,trainer.g_loss], title = 'loss', xlabel='iterations', legends = ['Discriminator Loss', 'Generator Loss'], save_path = os.path.join(args.cp_src,'loss.png'))
             run_time = 0
+            
 
         if trainer.iterations%int(args.cp_iter)==0:
             print("Saving...", end = '')
-            configs['iterations'] = trainer.get_num_iteration()
-            trainer.save(args.cp_src, configs)
-            save_checkpoint(F, os.path.join(args.cp_src, "mapping_weights.h5"))
-            save_checkpoint(G, os.path.join(args.cp_src, "generator_weights.h5"))
-            save_checkpoint(D, os.path.join(args.cp_src, "discriminator_weights.h5"))
+            trainer.save(os.path.join(args.cp_src, 'checkpoint_' + str(trainer.iterations)), configs)
+            plot_multiple_vectors([trainer.d_loss,trainer.g_loss], title = 'loss', xlabel='iterations', legends = ['Discriminator Loss', 'Generator Loss'], save_path = os.path.join(args.cp_src, 'checkpoint_'+str(trainer.get_num_iteration())+'/loss.png'))
+            dq.append('checkpoint_'+str(trainer.iterations))
+            while (len(dq) > 5):
+                top = dq[0]
+                shutil.rmtree(os.path.join(args.cp_src,top))
+                dq.popleft()
+            
+            trainer.save(os.path.join(args.cp_src, 'checkpoint'), configs)
+            plot_multiple_vectors([trainer.d_loss,trainer.g_loss], title = 'loss', xlabel='iterations', legends = ['Discriminator Loss', 'Generator Loss'], save_path = os.path.join(args.cp_src, 'checkpoint/loss.png'))
             print("Done!")
 
         if args.footstep!=0 and trainer.iterations%int(args.footstep)==0:
             result = destandardize_image(trainer.get_preview(FG, num_images, random = False))
             display_img(list(result), save_path = os.path.join(args.cp_src,"Preview_"+str(trainer.iterations)+".png"))
-
-def catch_exceptions(args):
-    train_new = args.train_new
-    checkpoint_exist = True
-
-    if (train_new):
-        os.makedirs(args.cp_src, exist_ok = True)
-    else:
-        checkpoint_exist = (os.path.isfile(os.path.join(args.cp_src,"generator_weights.h5"))
-                            or os.path.isfile(os.path.join(args.cp_src,"discriminator_weights.h5"))
-                            or os.path.isfile(os.path.join(args.cp_src,"mapping_weights.h5"))
-                            or os.path.isfile(os.path.join(args.cp_src,"optimizer_G_checkpoint.pkl"))
-                            or os.path.isfile(os.path.join(args.cp_src,"optimizer_D_checkpoint.pkl"))
-                            or os.path.isfile(os.path.join(args.cp_src,"log.json"))
-                            or os.path.isfile(os.path.join(args.cp_src,"training_checkpoint.h5")))
-
-    dataset_exist = os.path.isfile(args.data_src)
-
-    return not(checkpoint_exist and dataset_exist)
 
 if __name__ == "__main__":
 
@@ -125,14 +129,11 @@ if __name__ == "__main__":
     parser.add_argument('-loss', '--loss-function', help = 'loss function: 0 for WGAN-GP, 1 for LSGAN (default: 0)', dest = 'loss', type = int, default = 0)
 
     parser.add_argument('-c', '--checkpoint-iteration', dest = 'cp_iter', type = int, default = 100)
-    parser.add_argument('-cs', '--checkpoint-source', dest = 'cp_src', type = str, default = 'models/checkpoint')
+    parser.add_argument('-cs', '--checkpoint-source', dest = 'cp_src', type = str, default = 'models/checkpoints')
     parser.add_argument('-ds', '--data-source', dest = 'data_src', type = str, default = 'dataset/d1k.h5')
 
     parser.add_argument('-l', '--log', dest = 'log_iter', type = int, default = 10)
     parser.add_argument('-f', '--footstep', dest = 'footstep', type = int, default = 0)
     args = parser.parse_args()
 
-    if not(catch_exceptions(args)):
-        train(args)
-    else:
-        print("ERROR!!")
+    train(args)
