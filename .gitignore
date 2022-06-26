@@ -136,3 +136,4 @@ CycleGAN/models/checkpoint/loss_A.png
 CycleGAN/models/checkpoint/loss_B.png
 CycleGAN/models/checkpoint/Preview_A.jpg
 CycleGAN/models/checkpoint/Preview_B.jpg
+StyleGAN/d1k_256x256.h5

@@ -1,6 +1,4 @@
-import os
-import tensorflow as tf
-from tensorflow.keras.layers import Dense, Reshape, Cropping2D, Conv2D, UpSampling2D, Add, LeakyReLU, AveragePooling2D, Input, Flatten
+from tensorflow.keras.layers import Dense, Conv2D, Add, LeakyReLU, AveragePooling2D, Input, Flatten
 from tensorflow.keras.models import Model
 
 from models.layer_collection import Minibatch_stddev

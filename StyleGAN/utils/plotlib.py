@@ -21,7 +21,7 @@ def plot_multiple_vectors(v, figsize = (15,5), title = None, xlabel = None, ylab
     else:
         plt.close()
 
-def display_img(img_list, save_path = None ,show = None):
+def display_img(img_list, out_shape = (1024, 1024), save_path = None ,show = None):
     n = len(img_list)
     img_list = list(np.array(img_list).astype(np.uint8))
     size = int(np.sqrt(n))
@@ -38,7 +38,7 @@ def display_img(img_list, save_path = None ,show = None):
         else:
             vertical = np.vstack((vertical,temp.copy()))
     
-    vertical = cv2.resize(vertical, (1024, 1024))
+    vertical = cv2.resize(vertical, out_shape)
     if show!=None:
         cv2.imshow('Preview', vertical)
         cv2.waitKey(show)

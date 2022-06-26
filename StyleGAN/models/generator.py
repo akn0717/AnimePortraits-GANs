@@ -5,6 +5,9 @@ from tensorflow.keras.layers import Dense, Reshape, Cropping2D, Conv2D, UpSampli
 from tensorflow.keras.models import Model
 from models.layer_collection import AdaIN, Bias_Layer
 import h5py
+from config import *
+from utils.imglib import destandardize_image
+from utils.plotlib import display_img
 
 def Constant_block(shape):
     x = tf.zeros(shape = (shape[0], 4, 4, 512))
@@ -48,11 +51,11 @@ def G_block(x, w, noise_inp, filter, idx):
     to_rgb = UpSampling2D(size = (int(256/hidden.shape[1]),int(256/hidden.shape[1])),interpolation = 'bilinear') (to_rgb)
     return x_out, to_rgb
 
-def mapping_network(latent_size = 512, num_layers = 8):
+def mapping_network(latent_size = 512):
     z = Input(shape = (latent_size,))
 
     hidden = z
-    for idx in range(num_layers):
+    for idx in range(8):
         hidden = Dense(latent_size, activation = LeakyReLU(0.2)) (hidden)
     w = hidden
 
@@ -62,7 +65,7 @@ def mapping_network(latent_size = 512, num_layers = 8):
 def synthesis_network(configs):
     Feature_maps = [512, 512, 512, 512, 256, 128, 64]
     
-    w = Input(shape = (configs['latent_size'],))
+    w = Input(shape = (LATENT_SIZE,))
     w_shape = tf.shape(w)
     hidden = Constant_block(w_shape)
     noise_inp = Input(shape = (256, 256, 1))
@@ -78,14 +81,14 @@ def synthesis_network(configs):
     return model
 
 def get_generator(configs):
-    F = mapping_network(latent_size=configs['latent_size'], num_layers=configs['mapping_size'])
+    F = mapping_network(latent_size = LATENT_SIZE)
     G = synthesis_network(configs)
 
     return F, G
 
 def get_FG(configs, F, G):
     H, W = configs['image_height'], configs['image_width']
-    latent_size = configs['latent_size']
+    latent_size = LATENT_SIZE
 
     z = Input(shape = (latent_size,))
     noise_inp = Input(shape = (H,W,1))
@@ -96,7 +99,18 @@ def get_FG(configs, F, G):
 
 def check_point_G(Generator, path):
     F, G = Generator
-    
+
+def predict_batch(FG, x):
+    n = np.shape(np.array(x))[0]
+    z, noise = x[0], x[1]
+    res = []
+    for idx in range(0, n, MINI_BATCH_SIZE):
+        z_minibatch = z[idx:min(idx+MINI_BATCH_SIZE, n)]
+        noise_minibatch = noise[idx:min(idx+MINI_BATCH_SIZE, n)]
+        res.append(FG.predict([z_minibatch, noise_minibatch]))
+    res = np.concatenate(res, axis = 0)
+    return res
+
 
     
 

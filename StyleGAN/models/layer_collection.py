@@ -24,7 +24,7 @@ class Minibatch_stddev(tf.keras.layers.Layer):
     
     def call(self, inputs):
         shape = tf.shape(inputs)
-        std = tf.math.reduce_std(inputs, axis=0, keepdims=True)
+        std = tf.math.reduce_std(inputs, axis=0, keepdims=True) + 1e-8
         mean_std = tf.reduce_mean(std,keepdims=True)
         output = tf.tile(mean_std, [shape[0], shape[1], shape[2], 1])
         return tf.concat([inputs, output], axis = -1)
