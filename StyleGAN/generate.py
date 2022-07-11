@@ -36,7 +36,7 @@ def generate(args):
     generates = []
     for _ in range(configs['batch_size']):
         w = truncate(F(np.random.normal(size = (1, configs['latent_size']))), w_mean, args.psi)
-        noise = np.random.normal(size = (1, configs['image_height'], configs['image_width'], 1))#, np.zeros(shape = (1, configs['image_height'], configs['image_width'], 1)), 0.2)
+        noise = truncate(np.random.normal(size = (1, configs['image_height'], configs['image_width'], 1)), np.zeros(shape = (1, configs['image_height'], configs['image_width'], 1)), 0.1)
         generates.append(cv2.cvtColor(destandardize_image(G([w, noise])[0]), cv2.COLOR_RGB2BGR))
     
 
